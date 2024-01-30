@@ -21,19 +21,19 @@ See [below](#example) the YAML code of the depicted workflow.
 
 ### Inputs
 
-| Name                 | Required                                   | Description                                                                                                                                                                                                     |
-|----------------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `mode`               | Always required.                           | Specify here which mode you want to use: `start` to start a new runner, `stop` to stop the previously created runner.                                                                                           |
-| `github-token`       | Always required.                           | GitHub Personal Access Token with the `repo` scope assigned.                                                                                                                                                    |
-| `slab-url`           | Always required.                           | URL to Slab CI server.                                                                                                                                                                                          |
-| `job-secret`         | Always required.                           | Secret key used by Slab to perform HMAC computation.                                                                                                                                                            |
-| `region`             | Always required.                           | AWS deploy region.                                                                                                                                                                                              |
-| `ec2-image-id`       | Required if you use the `start` mode.      | EC2 Image ID (AMI).The new runner will be launched from this image. The action is compatible with Amazon Linux 2 images.                                                                                        |
-| `ec2-instance-type`  | Required if you use the `start` mode.      | EC2 Instance Type.                                                                                                                                                                                              |
-| `subnet-id`          | Optional. Used only with the `start` mode. | VPC Subnet ID.The subnet should belong to the same VPC as the specified security group.                                                                                                                         |
-| `security-group-ids` | Optional. Used only with the `start` mode. | EC2 Security Group IDs.The security group should belong to the same VPC as the specified subnet.Only the outbound traffic for port 443 should be allowed. No inbound traffic is required.                       |
-| `label`              | Required if you use the `stop` mode.       | Name of the unique label assigned to the runner.The label is provided by the output of the action in the `start` mode.The label is used to remove the runner from GitHub when the runner is not needed anymore. |
-| `ec2-instance-id`    | Required if you use the `stop` mode.       | EC2 Instance ID of the created runner.The ID is provided by the output of the action in the `start` mode.The ID is used to terminate the EC2 instance when the runner is not needed anymore.                    |                                                                                                                                        |
+| Name                 | Required                                                          | Description                                                                                                                                                                                                     |
+|----------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mode`               | Always required.                                                  | Specify here which mode you want to use: `start` to start a new runner, `stop` to stop the previously created runner.                                                                                           |
+| `github-token`       | Always required.                                                  | GitHub Personal Access Token with the `repo` scope assigned.                                                                                                                                                    |
+| `slab-url`           | Always required.                                                  | URL to Slab CI server.                                                                                                                                                                                          |
+| `job-secret`         | Always required.                                                  | Secret key used by Slab to perform HMAC computation.                                                                                                                                                            |
+| `profile`            | Optional.                                                         | Profile to use as described slab.toml file in repository that uses the action.                                                                                                                                  |
+| `region`             | Required if you don't use `profile`.                              | AWS deploy region.                                                                                                                                                                                              |
+| `ec2-image-id`       | Required if you don't use `profile` with `start` mode.            | EC2 Image ID (AMI).The new runner will be launched from this image. The action is compatible with Amazon Linux 2 images.                                                                                        |
+| `ec2-instance-type`  | Required if you don't use `profile` with `start` mode.            | EC2 Instance Type.                                                                                                                                                                                              |
+| `subnet-id`          | Optional. Used only if you don't use `profile` with `start` mode. | VPC Subnet ID.The subnet should belong to the same VPC as the specified security group.                                                                                                                         |
+| `security-group-ids` | Optional. Used only if you don't use `profile` with `start` mode. | EC2 Security Group IDs.The security group should belong to the same VPC as the specified subnet.Only the outbound traffic for port 443 should be allowed. No inbound traffic is required.                       |
+| `label`              | Required if you don't use `profile` with `stop` mode.             | Name of the unique label assigned to the runner.The label is provided by the output of the action in the `start` mode.The label is used to remove the runner from GitHub when the runner is not needed anymore. |
 
 ### Outputs
 
@@ -42,7 +42,7 @@ See [below](#example) the YAML code of the depicted workflow.
 | `label`           | Name of the unique label assigned to the runner. The label is used in two cases: to use as the input of `runs-on` property for the following jobs and to remove the runner from GitHub when it is not needed anymore. |
 | `ec2-instance-id` | EC2 Instance ID of the created runner.The ID is used to terminate the EC2 instance when the runner is not needed anymore.                                                                                             |
 
-### Example
+### Examples
 
 The workflow showed in the picture above and declared in `do-the-job.yml` looks like this:
 
@@ -90,8 +90,49 @@ jobs:
         with:
           mode: stop
           github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          region: eu-west-3
           label: ${{ needs.start-runner.outputs.label }}
-          ec2-instance-id: ${{ needs.start-runner.outputs.ec2-instance-id }}
+```
+
+Here's the same workflow but using a profile declared in `ci/slab.toml` within the calling repository
+
+```yml
+name: do-the-job
+on: pull_request
+jobs:
+  start-runner:
+    name: Start self-hosted EC2 runner
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.start-ec2-runner.outputs.label }}
+      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+    steps:
+      - name: Start EC2 runner
+        id: start-ec2-runner
+        uses: zama-ai/slab-github-runner@v1
+        with:
+          mode: start
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          profile: cpu-test
+
+  do-the-job:
+      # ... #
+
+  stop-runner:
+    name: Stop self-hosted EC2 runner
+    needs:
+      - start-runner # required to get output from the start-runner job
+      - do-the-job # required to wait when the main job is done
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # required to stop the runner even if the error happened in the previous jobs
+    steps:
+      - name: Stop EC2 runner
+        uses: zama-ai/slab-github-runner@v1
+        with:
+          mode: stop
+          github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
+          profile: cpu-test
+          label: ${{ needs.start-runner.outputs.label }}
 ```
 
 ## License Summary
