@@ -11,17 +11,30 @@ function getSignature(content) {
 
 async function startInstanceRequest() {
   const url = config.input.slabUrl
+
+  let details
+  if (config.input.profile) {
+    details = { profile: config.input.profile }
+  } else {
+    details = {
+      custom_start: {
+        region: config.input.region,
+        image_id: config.input.ec2ImageId,
+        instance_type: config.input.ec2InstanceType
+      }
+    }
+    if (config.input.subnetId) {
+      details.custom_start.subnet_id = config.input.subnetId
+    }
+    if (config.input.securityGroupIds) {
+      details.custom_start.security_group_ids = config.input.securityGroupIds
+    }
+  }
+
   const payload = {
-    region: config.input.region,
-    image_id: config.input.ec2ImageId,
-    instance_type: config.input.ec2InstanceType,
-    sha: config.githubContext.sha
-  }
-  if (config.input.subnetId) {
-    payload.subnet_id = config.input.subnetId
-  }
-  if (config.input.securityGroupIds) {
-    payload.security_group_ids = config.input.securityGroupIds
+    details,
+    sha: config.githubContext.sha,
+    git_ref: config.githubContext.ref
   }
 
   const body = JSON.stringify(payload)
@@ -86,12 +99,24 @@ async function waitForInstance(taskId, taskName) {
 
 async function terminateInstanceRequest(runnerName) {
   const url = config.input.slabUrl
+
+  let details
+  if (config.input.profile) {
+    details = {
+      profile: config.input.profile
+    }
+  } else {
+    details = { custom_stop: { region: config.input.region } }
+  }
+
   const payload = {
-    region: config.input.region,
+    details,
     runner_name: runnerName,
     action: 'terminate',
-    sha: config.githubContext.sha
+    sha: config.githubContext.sha,
+    git_ref: config.githubContext.ref
   }
+
   const body = JSON.stringify(payload)
   const signature = getSignature(body)
 
@@ -126,7 +151,7 @@ async function terminateInstanceRequest(runnerName) {
 async function getTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `/task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
 
     const response = await fetch(url.concat(route))
     if (response.ok) {
@@ -146,7 +171,7 @@ async function getTask(taskId) {
 async function removeTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `/task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
 
     const response = await fetch(url.concat(route), {
       method: 'DELETE'

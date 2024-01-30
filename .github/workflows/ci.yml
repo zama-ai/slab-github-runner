@@ -74,4 +74,25 @@ jobs:
           job-secret: ${{ secrets.JOB_SECRET }}
           region: eu-west-3
           label: ${{ steps.test-start.outputs.label }}
-          ec2-instance-id: ${{ steps.test-start.outputs.ec2-instance-id }}
+
+      - name: Test start instance with profile
+        id: test-start-profile
+        uses: ./
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          profile: ci-test
+
+      - name: Test stop instance with profile
+        id: test-stop-profile
+        if: ${{ always() }}
+        uses: ./
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          profile: ci-test
+          label: ${{ steps.test-start-profile.outputs.label }}

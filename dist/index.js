@@ -49568,13 +49568,13 @@ class Config {
       githubToken: core.getInput('github-token'),
       slabUrl: core.getInput('slab-url'),
       jobSecret: core.getInput('job-secret'),
+      profile: core.getInput('profile'),
       region: core.getInput('region'),
       ec2ImageId: core.getInput('ec2-image-id'),
       ec2InstanceType: core.getInput('ec2-instance-type'),
       subnetId: core.getInput('subnet-id'),
       securityGroupIds: core.getInput('security-group-ids'),
-      label: core.getInput('label'),
-      ec2InstanceId: core.getInput('ec2-instance-id')
+      label: core.getInput('label')
     }
 
     // the values of github.context.repo.owner and github.context.repo.repo are taken from
@@ -49583,7 +49583,8 @@ class Config {
     this.githubContext = {
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
-      sha: github.context.sha
+      sha: github.context.sha,
+      ref: github.context.ref
     }
 
     //
@@ -49606,12 +49607,28 @@ class Config {
       throw new Error(`The 'job-secret' input is not specified`)
     }
 
-    if (!this.input.region) {
+    if (
+      this.input.profile &&
+      (this.input.region ||
+        this.input.ec2ImageId ||
+        this.input.ec2InstanceType ||
+        this.input.subnetId ||
+        this.input.securityGroupIds)
+    ) {
+      throw new Error(
+        `The 'profile' input is mutually exclusive with any AWS related inputs`
+      )
+    }
+
+    if (!this.input.profile && !this.input.region) {
       throw new Error(`The 'region' input is not specified`)
     }
 
     if (this.input.mode === 'start') {
-      if (!this.input.ec2ImageId || !this.input.ec2InstanceType) {
+      if (
+        !this.input.profile &&
+        (!this.input.ec2ImageId || !this.input.ec2InstanceType)
+      ) {
         throw new Error(
           `Not all the required inputs are provided for the 'start' mode`
         )
@@ -49726,17 +49743,30 @@ function getSignature(content) {
 
 async function startInstanceRequest() {
   const url = config.input.slabUrl
+
+  let details
+  if (config.input.profile) {
+    details = { profile: config.input.profile }
+  } else {
+    details = {
+      custom_start: {
+        region: config.input.region,
+        image_id: config.input.ec2ImageId,
+        instance_type: config.input.ec2InstanceType
+      }
+    }
+    if (config.input.subnetId) {
+      details.custom_start.subnet_id = config.input.subnetId
+    }
+    if (config.input.securityGroupIds) {
+      details.custom_start.security_group_ids = config.input.securityGroupIds
+    }
+  }
+
   const payload = {
-    region: config.input.region,
-    image_id: config.input.ec2ImageId,
-    instance_type: config.input.ec2InstanceType,
-    sha: config.githubContext.sha
-  }
-  if (config.input.subnetId) {
-    payload.subnet_id = config.input.subnetId
-  }
-  if (config.input.securityGroupIds) {
-    payload.security_group_ids = config.input.securityGroupIds
+    details,
+    sha: config.githubContext.sha,
+    git_ref: config.githubContext.ref
   }
 
   const body = JSON.stringify(payload)
@@ -49801,12 +49831,24 @@ async function waitForInstance(taskId, taskName) {
 
 async function terminateInstanceRequest(runnerName) {
   const url = config.input.slabUrl
+
+  let details
+  if (config.input.profile) {
+    details = {
+      profile: config.input.profile
+    }
+  } else {
+    details = { custom_stop: { region: config.input.region } }
+  }
+
   const payload = {
-    region: config.input.region,
+    details,
     runner_name: runnerName,
     action: 'terminate',
-    sha: config.githubContext.sha
+    sha: config.githubContext.sha,
+    git_ref: config.githubContext.ref
   }
+
   const body = JSON.stringify(payload)
   const signature = getSignature(body)
 
@@ -49841,7 +49883,7 @@ async function terminateInstanceRequest(runnerName) {
 async function getTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `/task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
 
     const response = await fetch(url.concat(route))
     if (response.ok) {
@@ -49861,7 +49903,7 @@ async function getTask(taskId) {
 async function removeTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `/task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
 
     const response = await fetch(url.concat(route), {
       method: 'DELETE'
@@ -51843,9 +51885,14 @@ function setOutput(label, ec2InstanceId) {
 
 async function start() {
   const start_instance_response = await slab.startInstanceRequest()
+  // If a profile has been provided, region is empty.
+  // It's updated here in order to be used on task fetching.
+  if (!config.input.region) {
+    config.input.region = start_instance_response.aws_region
+  }
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,
-    'Start'
+    'start'
   )
 
   setOutput(
@@ -51860,7 +51907,12 @@ async function stop() {
   const stop_instance_response = await slab.terminateInstanceRequest(
     config.input.label
   )
-  await slab.waitForInstance(stop_instance_response.task_id, 'Stop')
+  // If a profile has been provided, region is empty.
+  // It's updated here in order to be used on task fetching.
+  if (!config.input.region) {
+    config.input.region = stop_instance_response.aws_region
+  }
+  await slab.waitForInstance(stop_instance_response.task_id, 'stop')
 }
 
 async function run() {
