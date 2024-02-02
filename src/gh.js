@@ -7,6 +7,7 @@ const utils = require('./utils')
 // Use the unique label to find the runner as we don't have the runner's id,
 // it's not possible to get it in any other way.
 async function getRunner(label) {
+  core.debug(`getting runners for label: ${label}`)
   const octokit = github.getOctokit(config.input.githubToken)
 
   try {
@@ -17,9 +18,12 @@ async function getRunner(label) {
         repo: config.githubContext.repo
       }
     )
+    core.debug(runners)
     const foundRunners = _.filter(runners, { labels: [{ name: label }] })
+    core.debug(foundRunners)
     return foundRunners.length > 0 ? foundRunners[0] : null
   } catch (error) {
+    core.debug(error)
     return null
   }
 }
@@ -40,6 +44,7 @@ async function waitForRunnerRegistered(label) {
 
   while (waitSeconds < timeoutSeconds) {
     const runner = await getRunner(label)
+    core.debug(runner)
 
     if (runner && runner.status === 'online') {
       core.info(
