@@ -55,7 +55,7 @@ async function waitForRunnerRegistered(label) {
   }
 
   core.error(
-    `A timeout of ${timeoutSeconds} minutes is exceeded. Your AWS EC2 instance was not able to register itself in GitHub as a new self-hosted runner.`
+    `A timeout of ${timeoutSeconds} seconds is exceeded. Your AWS EC2 instance was not able to register itself in GitHub as a new self-hosted runner.`
   )
   throw new Error('GitHub self-hosted runner registration error')
 }
