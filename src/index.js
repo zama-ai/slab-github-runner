@@ -3,9 +3,10 @@ const config = require('./config')
 const core = require('@actions/core')
 const { waitForRunnerRegistered } = require('./gh')
 
-function setOutput(label, ec2InstanceId) {
+function setOutput(label, ec2InstanceId, region) {
   core.setOutput('label', label)
   core.setOutput('ec2-instance-id', ec2InstanceId)
+  core.setOutput('aws-region', region)
 }
 
 async function start() {
@@ -22,7 +23,8 @@ async function start() {
 
   setOutput(
     start_instance_response.runner_name,
-    wait_instance_response.instance_id
+    wait_instance_response.instance_id,
+    start_instance_response.aws_region
   )
 
   await waitForRunnerRegistered(start_instance_response.runner_name)
