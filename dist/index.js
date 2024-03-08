@@ -49568,12 +49568,8 @@ class Config {
       githubToken: core.getInput('github-token'),
       slabUrl: core.getInput('slab-url'),
       jobSecret: core.getInput('job-secret'),
-      profile: core.getInput('profile'),
-      region: core.getInput('region'),
-      ec2ImageId: core.getInput('ec2-image-id'),
-      ec2InstanceType: core.getInput('ec2-instance-type'),
-      subnetId: core.getInput('subnet-id'),
-      securityGroupIds: core.getInput('security-group-ids'),
+      backend: core.getInput('backend').toLowerCase(),
+      profile: core.getInput('profile').toLowerCase(),
       label: core.getInput('label')
     }
 
@@ -49607,28 +49603,8 @@ class Config {
       throw new Error(`The 'job-secret' input is not specified`)
     }
 
-    if (
-      this.input.profile &&
-      (this.input.region ||
-        this.input.ec2ImageId ||
-        this.input.ec2InstanceType ||
-        this.input.subnetId ||
-        this.input.securityGroupIds)
-    ) {
-      throw new Error(
-        `The 'profile' input is mutually exclusive with any AWS related inputs`
-      )
-    }
-
-    if (!this.input.profile && !this.input.region) {
-      throw new Error(`The 'region' input is not specified`)
-    }
-
     if (this.input.mode === 'start') {
-      if (
-        !this.input.profile &&
-        (!this.input.ec2ImageId || !this.input.ec2InstanceType)
-      ) {
+      if (!this.input.backend || !this.input.profile) {
         throw new Error(
           `Not all the required inputs are provided for the 'start' mode`
         )
@@ -49743,23 +49719,12 @@ function getSignature(content) {
 
 async function startInstanceRequest() {
   const url = config.input.slabUrl
+  const provider = config.input.backend
 
-  let details
-  if (config.input.profile) {
-    details = { profile: config.input.profile }
-  } else {
-    details = {
-      custom_start: {
-        region: config.input.region,
-        image_id: config.input.ec2ImageId,
-        instance_type: config.input.ec2InstanceType
-      }
-    }
-    if (config.input.subnetId) {
-      details.custom_start.subnet_id = config.input.subnetId
-    }
-    if (config.input.securityGroupIds) {
-      details.custom_start.security_group_ids = config.input.securityGroupIds
+  const details = {
+    backend: {
+      provider,
+      profile: config.input.profile
     }
   }
 
@@ -49773,7 +49738,7 @@ async function startInstanceRequest() {
   const signature = getSignature(body)
 
   try {
-    core.info('Request AWS EC2 instance start')
+    core.info(`Request ${provider} instance start`)
 
     const response = await fetch(url.concat('/job'), {
       method: 'POST',
@@ -49787,15 +49752,15 @@ async function startInstanceRequest() {
     })
 
     if (response.ok) {
-      core.info('AWS EC2 instance start successfully requested')
+      core.info(`${provider} instance start successfully requested`)
       return await response.json()
     } else {
       core.setFailed(
-        `AWS EC2 instance start request has failed (HTTP status code: ${response.status})`
+        `${provider} instance start request has failed (HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error('AWS EC2 instance start request has failed')
+    core.error(`${provider} instance start request has failed`)
     throw error
   }
 }
@@ -49815,34 +49780,24 @@ async function waitForInstance(taskId, taskName) {
         }
       } else {
         core.error(
-          `Failed to wait for AWS EC2 instance (HTTP status code: ${response.status})`
+          `Failed to wait for instance (HTTP status code: ${response.status})`
         )
       }
     } catch (error) {
-      core.error('Failed to fetch or remove AWS EC2 instance task')
+      core.error('Failed to fetch or remove instance task')
       throw error
     }
   }
 
   core.setFailed(
-    'Timeout while waiting for AWS EC2 instance to be running after 15 mins.'
+    'Timeout while waiting for instance to be running after 15 mins.'
   )
 }
 
 async function terminateInstanceRequest(runnerName) {
   const url = config.input.slabUrl
 
-  let details
-  if (config.input.profile) {
-    details = {
-      profile: config.input.profile
-    }
-  } else {
-    details = { custom_stop: { region: config.input.region } }
-  }
-
   const payload = {
-    details,
     runner_name: runnerName,
     action: 'terminate',
     sha: config.githubContext.sha,
@@ -49853,7 +49808,7 @@ async function terminateInstanceRequest(runnerName) {
   const signature = getSignature(body)
 
   try {
-    core.info('Request AWS EC2 instance termination')
+    core.info(`Request instance termination (runner: ${runnerName})`)
 
     const response = await fetch(url.concat('/job'), {
       method: 'POST',
@@ -49867,15 +49822,15 @@ async function terminateInstanceRequest(runnerName) {
     })
 
     if (response.ok) {
-      core.info('AWS EC2 instance termination successfully requested')
+      core.info('Instance termination successfully requested')
       return response.json()
     } else {
       core.setFailed(
-        `AWS EC2 instance termination request has failed (HTTP status code: ${response.status})`
+        `Instance termination request has failed (HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error('AWS EC2 instance termination request has failed')
+    core.error('Instance termination request has failed')
     throw error
   }
 }
@@ -49883,19 +49838,19 @@ async function terminateInstanceRequest(runnerName) {
 async function getTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_status/${config.githubContext.repo}/${taskId}`
 
     const response = await fetch(url.concat(route))
     if (response.ok) {
-      core.debug('AWS EC2 instance task successfully fetched')
+      core.debug('Instance task successfully fetched')
       return response
     } else {
       core.setFailed(
-        `AWS EC2 instance task request has failed (HTTP status code: ${response.status})`
+        `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error(`Failed to fetch EC2 task status with ID: ${taskId}`)
+    core.error(`Failed to fetch task status with ID: ${taskId}`)
     throw error
   }
 }
@@ -49903,21 +49858,21 @@ async function getTask(taskId) {
 async function removeTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_delete/${config.githubContext.repo}/${taskId}`
 
     const response = await fetch(url.concat(route), {
       method: 'DELETE'
     })
     if (response.ok) {
-      core.debug('AWS EC2 instance task successfully removed')
+      core.debug('Instance task successfully removed')
       return response
     } else {
       core.setFailed(
-        `AWS EC2 instance task removal has failed (HTTP status code: ${response.status})`
+        `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error(`Failed to remove EC2 task status with ID: ${taskId}`)
+    core.error(`Failed to remove task status with ID: ${taskId}`)
     throw error
   }
 }
@@ -51878,29 +51833,22 @@ const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
 const { waitForRunnerRegistered } = __nccwpck_require__(6989)
 
-function setOutput(label, ec2InstanceId, region) {
+function setOutput(label) {
   core.setOutput('label', label)
-  core.setOutput('ec2-instance-id', ec2InstanceId)
-  core.setOutput('aws-region', region)
 }
 
 async function start() {
   const start_instance_response = await slab.startInstanceRequest()
-  // If a profile has been provided, region is empty.
-  // It's updated here in order to be used on task fetching.
-  if (!config.input.region) {
-    config.input.region = start_instance_response.aws_region
-  }
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,
     'start'
   )
 
-  setOutput(
-    start_instance_response.runner_name,
-    wait_instance_response.instance_id,
-    start_instance_response.aws_region
-  )
+  const provider = config.input.backend
+  const instance_id = wait_instance_response.start.instance_id
+  core.info(`${provider} instance started with ID: ${instance_id}`)
+
+  setOutput(start_instance_response.runner_name)
 
   await waitForRunnerRegistered(start_instance_response.runner_name)
 }
@@ -51909,12 +51857,9 @@ async function stop() {
   const stop_instance_response = await slab.terminateInstanceRequest(
     config.input.label
   )
-  // If a profile has been provided, region is empty.
-  // It's updated here in order to be used on task fetching.
-  if (!config.input.region) {
-    config.input.region = stop_instance_response.aws_region
-  }
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
+
+  core.info('Instance sucessfully terminated')
 }
 
 async function run() {

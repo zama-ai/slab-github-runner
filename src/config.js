@@ -8,12 +8,8 @@ class Config {
       githubToken: core.getInput('github-token'),
       slabUrl: core.getInput('slab-url'),
       jobSecret: core.getInput('job-secret'),
-      profile: core.getInput('profile'),
-      region: core.getInput('region'),
-      ec2ImageId: core.getInput('ec2-image-id'),
-      ec2InstanceType: core.getInput('ec2-instance-type'),
-      subnetId: core.getInput('subnet-id'),
-      securityGroupIds: core.getInput('security-group-ids'),
+      backend: core.getInput('backend').toLowerCase(),
+      profile: core.getInput('profile').toLowerCase(),
       label: core.getInput('label')
     }
 
@@ -47,28 +43,8 @@ class Config {
       throw new Error(`The 'job-secret' input is not specified`)
     }
 
-    if (
-      this.input.profile &&
-      (this.input.region ||
-        this.input.ec2ImageId ||
-        this.input.ec2InstanceType ||
-        this.input.subnetId ||
-        this.input.securityGroupIds)
-    ) {
-      throw new Error(
-        `The 'profile' input is mutually exclusive with any AWS related inputs`
-      )
-    }
-
-    if (!this.input.profile && !this.input.region) {
-      throw new Error(`The 'region' input is not specified`)
-    }
-
     if (this.input.mode === 'start') {
-      if (
-        !this.input.profile &&
-        (!this.input.ec2ImageId || !this.input.ec2InstanceType)
-      ) {
+      if (!this.input.backend || !this.input.profile) {
         throw new Error(
           `Not all the required inputs are provided for the 'start' mode`
         )

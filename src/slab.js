@@ -11,23 +11,12 @@ function getSignature(content) {
 
 async function startInstanceRequest() {
   const url = config.input.slabUrl
+  const provider = config.input.backend
 
-  let details
-  if (config.input.profile) {
-    details = { profile: config.input.profile }
-  } else {
-    details = {
-      custom_start: {
-        region: config.input.region,
-        image_id: config.input.ec2ImageId,
-        instance_type: config.input.ec2InstanceType
-      }
-    }
-    if (config.input.subnetId) {
-      details.custom_start.subnet_id = config.input.subnetId
-    }
-    if (config.input.securityGroupIds) {
-      details.custom_start.security_group_ids = config.input.securityGroupIds
+  const details = {
+    backend: {
+      provider,
+      profile: config.input.profile
     }
   }
 
@@ -41,7 +30,7 @@ async function startInstanceRequest() {
   const signature = getSignature(body)
 
   try {
-    core.info('Request AWS EC2 instance start')
+    core.info(`Request ${provider} instance start`)
 
     const response = await fetch(url.concat('/job'), {
       method: 'POST',
@@ -55,15 +44,15 @@ async function startInstanceRequest() {
     })
 
     if (response.ok) {
-      core.info('AWS EC2 instance start successfully requested')
+      core.info(`${provider} instance start successfully requested`)
       return await response.json()
     } else {
       core.setFailed(
-        `AWS EC2 instance start request has failed (HTTP status code: ${response.status})`
+        `${provider} instance start request has failed (HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error('AWS EC2 instance start request has failed')
+    core.error(`${provider} instance start request has failed`)
     throw error
   }
 }
@@ -83,34 +72,24 @@ async function waitForInstance(taskId, taskName) {
         }
       } else {
         core.error(
-          `Failed to wait for AWS EC2 instance (HTTP status code: ${response.status})`
+          `Failed to wait for instance (HTTP status code: ${response.status})`
         )
       }
     } catch (error) {
-      core.error('Failed to fetch or remove AWS EC2 instance task')
+      core.error('Failed to fetch or remove instance task')
       throw error
     }
   }
 
   core.setFailed(
-    'Timeout while waiting for AWS EC2 instance to be running after 15 mins.'
+    'Timeout while waiting for instance to be running after 15 mins.'
   )
 }
 
 async function terminateInstanceRequest(runnerName) {
   const url = config.input.slabUrl
 
-  let details
-  if (config.input.profile) {
-    details = {
-      profile: config.input.profile
-    }
-  } else {
-    details = { custom_stop: { region: config.input.region } }
-  }
-
   const payload = {
-    details,
     runner_name: runnerName,
     action: 'terminate',
     sha: config.githubContext.sha,
@@ -121,7 +100,7 @@ async function terminateInstanceRequest(runnerName) {
   const signature = getSignature(body)
 
   try {
-    core.info('Request AWS EC2 instance termination')
+    core.info(`Request instance termination (runner: ${runnerName})`)
 
     const response = await fetch(url.concat('/job'), {
       method: 'POST',
@@ -135,15 +114,15 @@ async function terminateInstanceRequest(runnerName) {
     })
 
     if (response.ok) {
-      core.info('AWS EC2 instance termination successfully requested')
+      core.info('Instance termination successfully requested')
       return response.json()
     } else {
       core.setFailed(
-        `AWS EC2 instance termination request has failed (HTTP status code: ${response.status})`
+        `Instance termination request has failed (HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error('AWS EC2 instance termination request has failed')
+    core.error('Instance termination request has failed')
     throw error
   }
 }
@@ -151,19 +130,19 @@ async function terminateInstanceRequest(runnerName) {
 async function getTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `task_status/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_status/${config.githubContext.repo}/${taskId}`
 
     const response = await fetch(url.concat(route))
     if (response.ok) {
-      core.debug('AWS EC2 instance task successfully fetched')
+      core.debug('Instance task successfully fetched')
       return response
     } else {
       core.setFailed(
-        `AWS EC2 instance task request has failed (HTTP status code: ${response.status})`
+        `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error(`Failed to fetch EC2 task status with ID: ${taskId}`)
+    core.error(`Failed to fetch task status with ID: ${taskId}`)
     throw error
   }
 }
@@ -171,21 +150,21 @@ async function getTask(taskId) {
 async function removeTask(taskId) {
   try {
     const url = config.input.slabUrl
-    const route = `task_delete/${config.githubContext.owner}/${config.githubContext.repo}/${config.input.region}/${taskId}`
+    const route = `task_delete/${config.githubContext.repo}/${taskId}`
 
     const response = await fetch(url.concat(route), {
       method: 'DELETE'
     })
     if (response.ok) {
-      core.debug('AWS EC2 instance task successfully removed')
+      core.debug('Instance task successfully removed')
       return response
     } else {
       core.setFailed(
-        `AWS EC2 instance task removal has failed (HTTP status code: ${response.status})`
+        `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
       )
     }
   } catch (error) {
-    core.error(`Failed to remove EC2 task status with ID: ${taskId}`)
+    core.error(`Failed to remove task status with ID: ${taskId}`)
     throw error
   }
 }
