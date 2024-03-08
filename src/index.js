@@ -3,29 +3,22 @@ const config = require('./config')
 const core = require('@actions/core')
 const { waitForRunnerRegistered } = require('./gh')
 
-function setOutput(label, ec2InstanceId, region) {
+function setOutput(label) {
   core.setOutput('label', label)
-  core.setOutput('ec2-instance-id', ec2InstanceId)
-  core.setOutput('aws-region', region)
 }
 
 async function start() {
   const start_instance_response = await slab.startInstanceRequest()
-  // If a profile has been provided, region is empty.
-  // It's updated here in order to be used on task fetching.
-  if (!config.input.region) {
-    config.input.region = start_instance_response.aws_region
-  }
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,
     'start'
   )
 
-  setOutput(
-    start_instance_response.runner_name,
-    wait_instance_response.instance_id,
-    start_instance_response.aws_region
-  )
+  const provider = config.input.backend
+  const instance_id = wait_instance_response.start.instance_id
+  core.info(`${provider} instance started with ID: ${instance_id}`)
+
+  setOutput(start_instance_response.runner_name)
 
   await waitForRunnerRegistered(start_instance_response.runner_name)
 }
@@ -34,12 +27,9 @@ async function stop() {
   const stop_instance_response = await slab.terminateInstanceRequest(
     config.input.label
   )
-  // If a profile has been provided, region is empty.
-  // It's updated here in order to be used on task fetching.
-  if (!config.input.region) {
-    config.input.region = stop_instance_response.aws_region
-  }
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
+
+  core.info('Instance sucessfully terminated')
 }
 
 async function run() {

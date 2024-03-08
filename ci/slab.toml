@@ -1,11 +1,9 @@
 # This profile is dedicated to test action behavior by replicating
-#profiles that can be found on repository using this workflow.
-[profile.ci-test]
+# profiles that can be found on repository using this workflow.
+[backend.aws.ci-test]
 region = "eu-west-3"
 image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
 instance_type = "t3.2xlarge"
 
-[command.placeholder]
-workflow = "no-workflow.yml"
-profile = "ci-test"
-check_run_name = "Placeholder command to test slab action"
+[profile]
+[command]
