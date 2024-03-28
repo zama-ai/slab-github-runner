@@ -45,7 +45,10 @@ jobs:
   test-action:
     name: GitHub Actions Test
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        provider: [ aws, hyperstack ]
+      fail-fast: false
     steps:
       - name: Checkout
         id: checkout
@@ -59,7 +62,7 @@ jobs:
           github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
           slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
           job-secret: ${{ secrets.JOB_SECRET }}
-          backend: aws
+          backend: ${{ matrix.provider }}
           profile: ci-test
 
       - name: Test stop instance
