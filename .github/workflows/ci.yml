@@ -43,7 +43,7 @@ jobs:
         run: npm run ci-test
 
   test-action:
-    name: GitHub Actions Test
+    name: GitHub Actions test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -64,6 +64,37 @@ jobs:
           job-secret: ${{ secrets.JOB_SECRET }}
           backend: ${{ matrix.provider }}
           profile: ci-test
+
+      - name: Test stop instance
+        id: test-stop
+        if: ${{ always() }}
+        uses: ./
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ${{ steps.test-start.outputs.label }}
+
+  test-custom-config:
+    name: GitHub Actions test custom config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Test start instance
+        id: test-start
+        uses: ./
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          region: eu-west-3
+          ec2-image-id: ami-01d21b7be69801c2f
+          ec2-instance-type: t3.2xlarge
 
       - name: Test stop instance
         id: test-stop
