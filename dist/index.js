@@ -49661,13 +49661,13 @@ async function getRunner(label) {
 }
 
 async function waitForRunnerRegistered(label) {
-  const timeoutSeconds = 300
+  const timeoutSeconds = 900
   const retryIntervalSeconds = 10
   const quietPeriodSeconds = 30
   let waitSeconds = 0
 
   core.info(
-    `Waiting ${quietPeriodSeconds}s for the AWS EC2 instance to be registered in GitHub as a new self-hosted runner`
+    `Waiting ${quietPeriodSeconds}s for ${config.input.backend} instance to be registered in GitHub as a new self-hosted runner`
   )
   await utils.sleep(quietPeriodSeconds)
   core.info(
@@ -49691,7 +49691,7 @@ async function waitForRunnerRegistered(label) {
   }
 
   core.error(
-    `A timeout of ${timeoutSeconds} seconds is exceeded. Your AWS EC2 instance was not able to register itself in GitHub as a new self-hosted runner.`
+    `A timeout of ${timeoutSeconds} seconds is exceeded. Your ${config.input.backend} instance was not able to register itself in GitHub as a new self-hosted runner.`
   )
   throw new Error('GitHub self-hosted runner registration error')
 }
