@@ -49766,7 +49766,7 @@ async function startInstanceRequest() {
 }
 
 async function waitForInstance(taskId, taskName) {
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     await utils.sleep(15)
 
     try {
