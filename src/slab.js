@@ -69,6 +69,12 @@ async function waitForInstance(taskId, taskName) {
         if (body[taskName].status.toLowerCase() === 'done') {
           await removeTask(taskId)
           return body
+        } else if (body[taskName].status.toLowerCase() === 'failed') {
+          await removeTask(taskId)
+          core.error(
+            `Instance task failed (details: ${body[taskName].status.details})`
+          )
+          core.setFailed('Failure occurred while waiting for instance.')
         }
       } else {
         core.error(
