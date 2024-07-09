@@ -25,7 +25,7 @@ async function getRunner(label) {
 }
 
 async function waitForRunnerRegistered(label) {
-  const timeoutSeconds = 900
+  const timeoutSeconds = 1800
   const retryIntervalSeconds = 10
   const quietPeriodSeconds = 30
   let waitSeconds = 0
