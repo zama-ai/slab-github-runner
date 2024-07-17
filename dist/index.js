@@ -49766,7 +49766,8 @@ async function startInstanceRequest() {
 }
 
 async function waitForInstance(taskId, taskName) {
-  for (let i = 0; i < 60; i++) {
+  // while (true) equivalent to please ESLint
+  for (;;) {
     await utils.sleep(15)
 
     try {
@@ -49788,19 +49789,16 @@ async function waitForInstance(taskId, taskName) {
           return
         }
       } else {
-        core.error(
+        core.setFailed(
           `Failed to wait for instance (HTTP status code: ${response.status})`
         )
+        return
       }
     } catch (error) {
       core.error('Failed to fetch or remove instance task')
       throw error
     }
   }
-
-  core.setFailed(
-    'Timeout while waiting for instance to be running after 15 mins.'
-  )
 }
 
 async function terminateInstanceRequest(runnerName) {
