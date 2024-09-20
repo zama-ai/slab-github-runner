@@ -49755,8 +49755,9 @@ async function startInstanceRequest() {
       core.info(`${provider} instance start successfully requested`)
       return await response.json()
     } else {
+      const resp_body = await response.text()
       core.setFailed(
-        `${provider} instance start request has failed (HTTP status code: ${response.status})`
+        `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
       )
     }
   } catch (error) {
@@ -49832,8 +49833,9 @@ async function terminateInstanceRequest(runnerName) {
       core.info('Instance termination successfully requested')
       return response.json()
     } else {
+      const resp_body = await response.text()
       core.setFailed(
-        `Instance termination request has failed (HTTP status code: ${response.status})`
+        `Instance termination request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
       )
     }
   } catch (error) {
