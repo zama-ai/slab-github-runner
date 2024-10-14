@@ -4,11 +4,13 @@
 region = "eu-west-3"
 image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
 instance_type = "t3.2xlarge"
+user = "ubuntu"
 
 [backend.hyperstack.ci-test]
 environment_name = "canada"
 image_name = "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
 flavor_name = "m"
+user = "ubuntu"
 
 [profile]
 [command]
