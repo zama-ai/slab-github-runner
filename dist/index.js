@@ -49717,6 +49717,15 @@ function getSignature(content) {
   return hmac.digest('hex')
 }
 
+function concat_path(url, path) {
+  if (url.endsWith('/')) {
+    // Multiple '/' char at the end of URL is fine.
+    return url.concat(path)
+  } else {
+    return url.concat('/', path)
+  }
+}
+
 async function startInstanceRequest() {
   const url = config.input.slabUrl
   const provider = config.input.backend
@@ -49740,7 +49749,7 @@ async function startInstanceRequest() {
   try {
     core.info(`Request ${provider} instance start`)
 
-    const response = await fetch(url.concat('/job'), {
+    const response = await fetch(concat_path(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49818,7 +49827,7 @@ async function terminateInstanceRequest(runnerName) {
   try {
     core.info(`Request instance termination (runner: ${runnerName})`)
 
-    const response = await fetch(url.concat('/job'), {
+    const response = await fetch(concat_path(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49849,7 +49858,7 @@ async function getTask(taskId) {
     const url = config.input.slabUrl
     const route = `task_status/${config.githubContext.repo}/${taskId}`
 
-    const response = await fetch(url.concat(route))
+    const response = await fetch(concat_path(url, route))
     if (response.ok) {
       core.debug('Instance task successfully fetched')
       return response
@@ -49869,7 +49878,7 @@ async function removeTask(taskId) {
     const url = config.input.slabUrl
     const route = `task_delete/${config.githubContext.repo}/${taskId}`
 
-    const response = await fetch(url.concat(route), {
+    const response = await fetch(concat_path(url, route), {
       method: 'DELETE'
     })
     if (response.ok) {
