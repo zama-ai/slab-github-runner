@@ -24,6 +24,19 @@ async function getRunner(label) {
   }
 }
 
+async function getAllRunner() {
+  const octokit = github.getOctokit(config.input.githubToken)
+
+  try {
+    const runners = await octokit.paginate(
+      'GET /repos/zama-ai/kms-core/actions/runners'
+    )
+    return runners.length
+  } catch (error) {
+    return null
+  }
+}
+
 async function waitForRunnerRegistered(label) {
   const timeoutSeconds = 1800
   const retryIntervalSeconds = 10
@@ -61,5 +74,6 @@ async function waitForRunnerRegistered(label) {
 }
 
 module.exports = {
-  waitForRunnerRegistered
+  waitForRunnerRegistered,
+  getAllRunner
 }

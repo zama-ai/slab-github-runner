@@ -1,13 +1,16 @@
 const slab = require('./slab')
 const config = require('./config')
 const core = require('@actions/core')
-const { waitForRunnerRegistered } = require('./gh')
+const { waitForRunnerRegistered, getAllRunner } = require('./gh')
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
 
 async function start() {
+  const runnerCount = await getAllRunner()
+  core.info(`Number of runner found in kms-core: ${runnerCount}`)
+
   const start_instance_response = await slab.startInstanceRequest()
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,

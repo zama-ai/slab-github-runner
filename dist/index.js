@@ -49660,6 +49660,19 @@ async function getRunner(label) {
   }
 }
 
+async function getAllRunner() {
+  const octokit = github.getOctokit(config.input.githubToken)
+
+  try {
+    const runners = await octokit.paginate(
+      'GET /repos/zama-ai/kms-core/actions/runners'
+    )
+    return runners.length
+  } catch (error) {
+    return null
+  }
+}
+
 async function waitForRunnerRegistered(label) {
   const timeoutSeconds = 1800
   const retryIntervalSeconds = 10
@@ -49697,7 +49710,8 @@ async function waitForRunnerRegistered(label) {
 }
 
 module.exports = {
-  waitForRunnerRegistered
+  waitForRunnerRegistered,
+  getAllRunner
 }
 
 
@@ -51849,13 +51863,16 @@ var __webpack_exports__ = {};
 const slab = __nccwpck_require__(4156)
 const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
-const { waitForRunnerRegistered } = __nccwpck_require__(6989)
+const { waitForRunnerRegistered, getAllRunner } = __nccwpck_require__(6989)
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
 
 async function start() {
+  const runnerCount = await getAllRunner()
+  core.info(`Number of runner found in kms-core: ${runnerCount}`)
+
   const start_instance_response = await slab.startInstanceRequest()
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,
