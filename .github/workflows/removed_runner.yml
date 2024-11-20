@@ -20,18 +20,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: List runners
-        run: |
-          echo "RUNNERS_FOUND=$(gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name')" >> "${GITHUB_ENV}"
-        env:
-          GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
-
       - name: Check runner removed
         if: inputs.must-exist == false
         run: |
-          ( echo "${{ env.RUNNERS_FOUND }}" | grep --line-regexp -q "${{ inputs.runner-name }}" ) && { exit 1; } || exit 0
+          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${{ inputs.runner-name }}" ) && { exit 1; } || exit 0
+        env:
+          GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
 
       - name: Check runner persists
         if: inputs.must-exist == true
         run: |
-          ( echo "${{ env.RUNNERS_FOUND }}" | grep --line-regexp -q "${{ inputs.runner-name }}" ) || exit 1
+          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${{ inputs.runner-name }}" ) || exit 1
+        env:
+          GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
