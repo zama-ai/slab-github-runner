@@ -82,12 +82,22 @@ jobs:
           job-secret: ${{ secrets.JOB_SECRET }}
           label: ${{ matrix.runner }}
 
-  test-runner-removed:
-    name: Test runner is removed
-    needs: [ action-stop ]
+  test-runner-removed-aws:
+    name: Test runner is removed (AWS)
+    needs: [ action-start, action-stop ]
     uses: ./.github/workflows/removed_runner.yml
     with:
-      runner-name: ci-persistent-runner
+      runner-name: ${{ needs.action-start.outputs.runner-aws }}
+      must-exist: false
+    secrets:
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+
+  test-runner-removed-hyperstack:
+    name: Test runner is removed (Hyperstack)
+    needs: [ action-start, action-stop ]
+    uses: ./.github/workflows/removed_runner.yml
+    with:
+      runner-name: ${{ needs.action-start.outputs.runner-hyperstack }}
       must-exist: false
     secrets:
       READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
