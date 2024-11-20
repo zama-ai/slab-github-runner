@@ -1,0 +1,19 @@
+# This simple workflow is used to test if a runner is registered on GitHub platform.
+name: Test registered runner
+
+on:
+  workflow_call:
+    inputs:
+      runner-name:
+        required: true
+        type: string
+
+jobs:
+  test-runner:
+    name: Test Runner
+    runs-on: ${{ inputs.runner-name }}
+    timeout-minutes: 5  # Job should be picked very quickly
+    steps:
+      - name: Runner registered
+        run: |
+          echo "Runner name: $ {{ inputs.runner-name }}"

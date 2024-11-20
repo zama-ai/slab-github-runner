@@ -6,6 +6,14 @@ image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
 instance_type = "t3.2xlarge"
 user = "ubuntu"
 
+# This instance is a persistent one with a runner already registered
+[backend.aws.ci-test-start-stop]
+region = "eu-west-3"
+image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
+instance_type = "t3.2xlarge"
+instance_id = "i-042a592f53f5ab592"
+runner_name = "ci-persistent-runner"
+
 [backend.hyperstack.ci-test]
 environment_name = "canada"
 image_name = "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
