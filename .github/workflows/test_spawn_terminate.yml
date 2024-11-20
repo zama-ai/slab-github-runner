@@ -81,3 +81,13 @@ jobs:
           slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
           job-secret: ${{ secrets.JOB_SECRET }}
           label: ${{ matrix.runner }}
+
+  test-runner-removed:
+    name: Test runner is removed
+    needs: [ action-stop ]
+    uses: ./.github/workflows/removed_runner.yml
+    with:
+      runner-name: ci-persistent-runner
+      must-exist: false
+    secrets:
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
