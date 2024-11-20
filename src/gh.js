@@ -17,7 +17,7 @@ async function getRunner(label) {
         repo: config.githubContext.repo
       }
     )
-    const foundRunners = _.filter(runners, { labels: [{ name: label }] })
+    const foundRunners = _.filter(runners, { name: label })
     return foundRunners.length > 0 ? foundRunners[0] : null
   } catch (error) {
     return null
@@ -35,7 +35,7 @@ async function waitForRunnerRegistered(label) {
   )
   await utils.sleep(quietPeriodSeconds)
   core.info(
-    `Checking every ${retryIntervalSeconds}s if the GitHub self-hosted runner is registered`
+    `Checking every ${retryIntervalSeconds}s if the GitHub self-hosted runner is registered (runner: ${label})`
   )
 
   while (waitSeconds < timeoutSeconds) {

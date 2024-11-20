@@ -1,0 +1,79 @@
+# Test action to start/stop already provisioned backend instance.
+name: Test Start-Stop
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test-runner-exist:
+    name: Test runner is registered
+    uses: ./.github/workflows/removed_runner.yml
+    with:
+      runner-name: ci-persistent-runner
+      must-exist: true
+    secrets:
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+
+  action-start:
+    name: GitHub Actions Test (start)
+    runs-on: ubuntu-latest
+    needs: [ test-runner-exist ]
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Test start instance
+        id: test-start
+        uses: ./
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          backend: aws
+          profile: ci-test-start-stop
+
+  test-runner-alive:
+    name: Test runner is alive
+    needs: [ action-start ]
+    uses: ./.github/workflows/registered_runner.yml
+    with:
+      runner-name: ci-persistent-runner
+
+  action-stop:
+    name: GitHub Actions Test (stop)
+    runs-on: ubuntu-latest
+    needs: [ action-start, test-runner-alive ]
+    if: ${{ always() && needs.action-start.result != 'skipped' }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Test stop instance
+        id: test-stop
+        uses: ./
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ci-persistent-runner
+
+  test-runner-persist:
+    name: Test runner is still registered
+    needs: [ action-stop ]
+    uses: ./.github/workflows/removed_runner.yml
+    with:
+      runner-name: ci-persistent-runner
+      must-exist: true
+    secrets:
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}

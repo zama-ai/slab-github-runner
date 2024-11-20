@@ -29,7 +29,7 @@ async function stop() {
   )
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
 
-  core.info('Instance sucessfully terminated')
+  core.info('Instance successfully terminated')
 }
 
 async function run() {

@@ -1,0 +1,37 @@
+# This simple workflow is used to test if a runner is removed from GitHub platform.
+name: Test registered runner
+
+on:
+  workflow_call:
+    inputs:
+      runner-name:
+        required: true
+        type: string
+      must-exist:
+        type: boolean
+        default: false
+    secrets:
+      READ_REPO_TOKEN:
+        required: true
+
+jobs:
+  test-removed-runner:
+    name: Test Removed Runner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: List runners
+        run: |
+          echo "RUNNERS_FOUND=$(gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name')" >> "${GITHUB_ENV}"
+        env:
+          GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
+
+      - name: Check runner removed
+        if: inputs.must-exist == false
+        run: |
+          ( echo "${{ env.RUNNERS_FOUND }}" | grep --line-regexp -q "${{ inputs.runner-name }}" ) && { exit 1; } || exit 0
+
+      - name: Check runner persists
+        if: inputs.must-exist == true
+        run: |
+          ( echo "${{ env.RUNNERS_FOUND }}" | grep --line-regexp -q "${{ inputs.runner-name }}" ) || exit 1

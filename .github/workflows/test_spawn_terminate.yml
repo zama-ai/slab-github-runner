@@ -1,0 +1,83 @@
+# Test action to spawn/terminate backend instance
+name: Test Spawn-Terminate
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  action-start:
+    name: GitHub Actions Test (spawn)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        provider: [ aws, hyperstack ]
+      fail-fast: false
+    outputs:
+      runner-aws: ${{ steps.gen-output.outputs.runner_aws }}
+      runner-hyperstack: ${{ steps.gen-output.outputs.runner_hyperstack }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Test start instance
+        id: test-start
+        uses: ./
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          backend: ${{ matrix.provider }}
+          profile: ci-test
+
+      - name: Generate output
+        id: gen-output
+        run: |
+          echo "runner_${{ matrix.provider }}=${{ steps.test-start.outputs.label }}" >> "${GITHUB_OUTPUT}"
+
+  test-runner-alive-aws:
+    name: Test runner is alive (AWS)
+    needs: [ action-start ]
+    uses: ./.github/workflows/registered_runner.yml
+    with:
+      runner-name: ${{ needs.action-start.outputs.runner-aws }}
+
+  test-runner-alive-hyperstack:
+    name: Test runner is alive (Hyperstack)
+    needs: [ action-start ]
+    uses: ./.github/workflows/registered_runner.yml
+    with:
+      runner-name: ${{ needs.action-start.outputs.runner-hyperstack }}
+
+  action-stop:
+    name: GitHub Actions Test (terminate)
+    runs-on: ubuntu-latest
+    needs: [ action-start, test-runner-alive-aws, test-runner-alive-hyperstack ]
+    if: ${{ always() && needs.action-start.result != 'skipped' }}
+    strategy:
+      matrix:
+        runner: [ "${{ needs.action-start.outputs.runner-aws }}",
+                  "${{ needs.action-start.outputs.runner-hyperstack }}" ]
+      fail-fast: false
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+
+      - name: Test stop instance
+        id: test-stop
+        uses: ./
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ${{ matrix.runner }}
