@@ -33,10 +33,10 @@ inputs:
       Profile to use as described slab.toml file in repository that uses the action.
       This input is required if you use the 'start' mode.
     required: false
-  label:
+  runner-id:
     description: >-
-      Name of the unique label assigned to the runner.
-      The label is used to remove the runner from GitHub when the runner is not needed anymore.
+      Unique ID assigned to the runner.
+      The runner ID is used to remove the runner from GitHub when the runner is not needed anymore.
       This input is required if you use the 'stop' mode.
     required: false
 
@@ -44,9 +44,11 @@ outputs:
   label:
     description: >-
       Name of the unique label assigned to the runner.
-      The label is used in two cases:
-      - to use as the input of 'runs-on' property for the following jobs;
-      - to remove the runner from GitHub when it is not needed anymore.
+      Use `label` as the input of `runs-on` workflow property to run subsequent jobs.
+  id:
+    description: >-
+      Unique ID assigned to the runner.
+      Use `id` as input of `runner-id` action property remove the runner from GitHub when it is not needed anymore.
 runs:
   using: node20
   main: ./dist/index.js

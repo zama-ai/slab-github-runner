@@ -49570,7 +49570,7 @@ class Config {
       jobSecret: core.getInput('job-secret'),
       backend: core.getInput('backend').toLowerCase(),
       profile: core.getInput('profile').toLowerCase(),
-      label: core.getInput('label')
+      runnerId: core.getInput('runner-id')
     }
 
     // the values of github.context.repo.owner and github.context.repo.repo are taken from
@@ -49610,7 +49610,7 @@ class Config {
         )
       }
     } else if (this.input.mode === 'stop') {
-      if (!this.input.label) {
+      if (!this.input.runnerId) {
         throw new Error(
           `Not all the required inputs are provided for the 'stop' mode`
         )
@@ -49681,7 +49681,7 @@ async function waitForRunnerRegistered(label) {
       core.info(
         `GitHub self-hosted runner ${runner.name} is registered and ready to use`
       )
-      return
+      return runner.id
     } else {
       waitSeconds += retryIntervalSeconds
       core.info('Checking...')
@@ -49811,11 +49811,11 @@ async function waitForInstance(taskId, taskName) {
   }
 }
 
-async function terminateInstanceRequest(runnerName) {
+async function terminateInstanceRequest(runnerId) {
   const url = config.input.slabUrl
 
   const payload = {
-    runner_name: runnerName,
+    runner_id: parseInt(runnerId, 10),
     action: 'terminate',
     sha: config.githubContext.sha,
     git_ref: config.githubContext.ref
@@ -49825,7 +49825,7 @@ async function terminateInstanceRequest(runnerName) {
   const signature = getSignature(body)
 
   try {
-    core.info(`Request instance termination (runner: ${runnerName})`)
+    core.info(`Request instance termination (runner ID: ${runnerId})`)
 
     const response = await fetch(concat_path(url, 'job'), {
       method: 'POST',
@@ -51851,8 +51851,9 @@ const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
 const { waitForRunnerRegistered } = __nccwpck_require__(6989)
 
-function setOutput(label) {
+function setOutput(label, id) {
   core.setOutput('label', label)
+  core.setOutput('id', id)
 }
 
 async function start() {
@@ -51866,14 +51867,16 @@ async function start() {
   const instance_id = wait_instance_response.start.instance_id
   core.info(`${provider} instance started with ID: ${instance_id}`)
 
-  setOutput(start_instance_response.runner_name)
+  const runner_id = await waitForRunnerRegistered(
+    start_instance_response.runner_name
+  )
 
-  await waitForRunnerRegistered(start_instance_response.runner_name)
+  setOutput(start_instance_response.runner_name, runner_id)
 }
 
 async function stop() {
   const stop_instance_response = await slab.terminateInstanceRequest(
-    config.input.label
+    config.input.runnerId
   )
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
 

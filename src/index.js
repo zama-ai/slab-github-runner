@@ -3,8 +3,9 @@ const config = require('./config')
 const core = require('@actions/core')
 const { waitForRunnerRegistered } = require('./gh')
 
-function setOutput(label) {
+function setOutput(label, id) {
   core.setOutput('label', label)
+  core.setOutput('id', id)
 }
 
 async function start() {
@@ -18,14 +19,16 @@ async function start() {
   const instance_id = wait_instance_response.start.instance_id
   core.info(`${provider} instance started with ID: ${instance_id}`)
 
-  setOutput(start_instance_response.runner_name)
+  const runner_id = await waitForRunnerRegistered(
+    start_instance_response.runner_name
+  )
 
-  await waitForRunnerRegistered(start_instance_response.runner_name)
+  setOutput(start_instance_response.runner_name, runner_id)
 }
 
 async function stop() {
   const stop_instance_response = await slab.terminateInstanceRequest(
-    config.input.label
+    config.input.runnerId
   )
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
 

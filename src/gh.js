@@ -45,7 +45,7 @@ async function waitForRunnerRegistered(label) {
       core.info(
         `GitHub self-hosted runner ${runner.name} is registered and ready to use`
       )
-      return
+      return runner.id
     } else {
       waitSeconds += retryIntervalSeconds
       core.info('Checking...')

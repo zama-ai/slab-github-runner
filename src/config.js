@@ -10,7 +10,7 @@ class Config {
       jobSecret: core.getInput('job-secret'),
       backend: core.getInput('backend').toLowerCase(),
       profile: core.getInput('profile').toLowerCase(),
-      label: core.getInput('label')
+      runnerId: core.getInput('runner-id')
     }
 
     // the values of github.context.repo.owner and github.context.repo.repo are taken from
@@ -50,7 +50,7 @@ class Config {
         )
       }
     } else if (this.input.mode === 'stop') {
-      if (!this.input.label) {
+      if (!this.input.runnerId) {
         throw new Error(
           `Not all the required inputs are provided for the 'stop' mode`
         )

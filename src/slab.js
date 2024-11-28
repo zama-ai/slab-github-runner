@@ -103,11 +103,11 @@ async function waitForInstance(taskId, taskName) {
   }
 }
 
-async function terminateInstanceRequest(runnerName) {
+async function terminateInstanceRequest(runnerId) {
   const url = config.input.slabUrl
 
   const payload = {
-    runner_name: runnerName,
+    runner_id: parseInt(runnerId, 10),
     action: 'terminate',
     sha: config.githubContext.sha,
     git_ref: config.githubContext.ref
@@ -117,7 +117,7 @@ async function terminateInstanceRequest(runnerName) {
   const signature = getSignature(body)
 
   try {
-    core.info(`Request instance termination (runner: ${runnerName})`)
+    core.info(`Request instance termination (runner ID: ${runnerId})`)
 
     const response = await fetch(concat_path(url, 'job'), {
       method: 'POST',

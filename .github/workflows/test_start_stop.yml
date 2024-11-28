@@ -25,6 +25,8 @@ jobs:
     name: GitHub Actions Test (start)
     runs-on: ubuntu-latest
     needs: [ test-runner-exist ]
+    outputs:
+      runner-id: ${{ steps.test-start.outputs.id }}
     steps:
       - name: Checkout
         id: checkout
@@ -66,7 +68,7 @@ jobs:
           github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
           slab-url: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
           job-secret: ${{ secrets.JOB_SECRET }}
-          label: ci-persistent-runner
+          runner-id: ${{ needs.action-start.outputs.runner-id}}
 
   test-runner-persist:
     name: Test runner is still registered

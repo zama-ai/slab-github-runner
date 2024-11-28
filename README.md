@@ -21,21 +21,22 @@ See [below](#example) the YAML code of the depicted workflow.
 
 ### Inputs
 
-| Name           | Required                    | Description                                                                                                                                                                                                     |
-|----------------|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `mode`         | Always required.            | Specify here which mode you want to use: `start` to start a new runner, `stop` to stop the previously created runner.                                                                                           |
-| `github-token` | Always required.            | GitHub Personal Access Token with the `repo` scope assigned.                                                                                                                                                    |
-| `slab-url`     | Always required.            | URL to Slab CI server.                                                                                                                                                                                          |
-| `job-secret`   | Always required.            | Secret key used by Slab to perform HMAC computation.                                                                                                                                                            |
-| `backend`      | Required with `start` mode. | Backend provider name to look for in slab.toml file in repository that uses the action.                                                                                                                         |
-| `profile`      | Required with `start` mode. | Profile to use as described slab.toml file in repository that uses the action.                                                                                                                                  |
-| `label`        | Required with `stop` mode.  | Name of the unique label assigned to the runner.The label is provided by the output of the action in the `start` mode.The label is used to remove the runner from GitHub when the runner is not needed anymore. |
+| Name           | Required                    | Description                                                                                                                                                                                 |
+|----------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mode`         | Always required.            | Specify here which mode you want to use: `start` to start a new runner, `stop` to stop the previously created runner.                                                                       |
+| `github-token` | Always required.            | GitHub Personal Access Token with the `repo` scope assigned.                                                                                                                                |
+| `slab-url`     | Always required.            | URL to Slab CI server.                                                                                                                                                                      |
+| `job-secret`   | Always required.            | Secret key used by Slab to perform HMAC computation.                                                                                                                                        |
+| `backend`      | Required with `start` mode. | Backend provider name to look for in slab.toml file in repository that uses the action.                                                                                                     |
+| `profile`      | Required with `start` mode. | Profile to use as described slab.toml file in repository that uses the action.                                                                                                              |
+| `runner-id`    | Required with `stop` mode.  | Unique ID assigned to the runner.The ID is provided by the output of the action in the `start` mode. The ID is used to remove the runner from GitHub when the runner is not needed anymore. |
 
 ### Outputs
 
-| Name          | Description                                                                                                                                                                                                           |
-|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `label`       | Name of the unique label assigned to the runner. The label is used in two cases: to use as the input of `runs-on` property for the following jobs and to remove the runner from GitHub when it is not needed anymore. |
+| Name    | Description                                                                                                                                     |
+|---------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `label` | Name of the unique label assigned to the runner. Use `label` as the input of `runs-on` workflow property to run subsequent jobs.                |
+| `id`    | Unique ID assigned to the runner. Use `id` as input of `runner-id` action property remove the runner from GitHub when it is not needed anymore. |
 
 ### Examples
 
@@ -50,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
-      ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
+      id: ${{ steps.start-ec2-runner.outputs.id }}
     steps:
       - name: Start EC2 runner
         id: start-ec2-runner
@@ -62,6 +63,9 @@ jobs:
           profile: cpu-test
 
   do-the-job:
+    needs: start-runner
+    runs-on: ${{ needs.start-runner.outputs.label }}
+    steps:
       # ... #
 
   stop-runner:
@@ -77,7 +81,7 @@ jobs:
         with:
           mode: stop
           github-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
-          label: ${{ needs.start-runner.outputs.label }}
+          runner-id: ${{ needs.start-runner.outputs.id }}
 ```
 
 ## License Summary
