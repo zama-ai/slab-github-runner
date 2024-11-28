@@ -68,11 +68,14 @@ async function startInstanceRequest() {
 }
 
 async function waitForInstance(taskId, taskName) {
+  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+
   // while (true) equivalent to please ESLint
   for (;;) {
     await utils.sleep(15)
 
     try {
+      core.info('Checking...')
       const response = await getTask(taskId)
 
       if (response.ok) {

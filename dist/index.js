@@ -49776,11 +49776,14 @@ async function startInstanceRequest() {
 }
 
 async function waitForInstance(taskId, taskName) {
+  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+
   // while (true) equivalent to please ESLint
   for (;;) {
     await utils.sleep(15)
 
     try {
+      core.info('Checking...')
       const response = await getTask(taskId)
 
       if (response.ok) {
@@ -51856,13 +51859,20 @@ function setOutput(label) {
 }
 
 async function start() {
+  const provider = config.input.backend
+
   const start_instance_response = await slab.startInstanceRequest()
+  core.info(
+    `${provider} instance details: ${JSON.stringify(
+      start_instance_response.details
+    )}`
+  )
+
   const wait_instance_response = await slab.waitForInstance(
     start_instance_response.task_id,
     'start'
   )
 
-  const provider = config.input.backend
   const instance_id = wait_instance_response.start.instance_id
   core.info(`${provider} instance started with ID: ${instance_id}`)
 
