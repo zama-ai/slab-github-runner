@@ -49745,11 +49745,12 @@ async function startInstanceRequest() {
 
   const body = JSON.stringify(payload)
   const signature = getSignature(body)
+  let response
+
+  core.info(`Request ${provider} instance start`)
 
   try {
-    core.info(`Request ${provider} instance start`)
-
-    const response = await fetch(concat_path(url, 'job'), {
+    response = await fetch(concat_path(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49759,19 +49760,63 @@ async function startInstanceRequest() {
       },
       body: body.toString()
     })
-
-    if (response.ok) {
-      core.info(`${provider} instance start successfully requested`)
-      return await response.json()
-    } else {
-      const resp_body = await response.text()
-      core.setFailed(
-        `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
-      )
-    }
   } catch (error) {
-    core.error(`${provider} instance start request has failed`)
+    core.error(`Fetch call has failed`)
     throw error
+  }
+
+  if (response.ok) {
+    core.info(`${provider} instance start successfully requested`)
+    return await response.json()
+  } else {
+    const resp_body = await response.text()
+    core.error(
+      `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+    )
+    throw new Error('instance start request failed')
+  }
+}
+
+async function stopInstanceRequest(runnerName) {
+  const url = config.input.slabUrl
+
+  const payload = {
+    runner_name: runnerName,
+    sha: config.githubContext.sha,
+    git_ref: config.githubContext.ref
+  }
+
+  const body = JSON.stringify(payload)
+  const signature = getSignature(body)
+  let response
+
+  core.info(`Request instance stop (runner: ${runnerName})`)
+
+  try {
+    response = await fetch(concat_path(url, 'job'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Slab-Repository': `${config.githubContext.owner}/${config.githubContext.repo}`,
+        'X-Slab-Command': 'stop_instance',
+        'X-Hub-Signature-256': `sha256=${signature}`
+      },
+      body: body.toString()
+    })
+  } catch (error) {
+    core.error('Instance stop request has failed')
+    throw error
+  }
+
+  if (response.ok) {
+    core.info('Instance stop successfully requested')
+    return response.json()
+  } else {
+    const resp_body = await response.text()
+    core.error(
+      `Instance stop request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+    )
+    throw new Error('instance stop request failed')
   }
 }
 
@@ -49782,125 +49827,82 @@ async function waitForInstance(taskId, taskName) {
   for (;;) {
     await utils.sleep(15)
 
-    try {
-      core.info('Checking...')
-      const response = await getTask(taskId)
-
-      if (response.ok) {
-        const body = await response.json()
-        const task_status = body[taskName].status.toLowerCase()
-
-        if (task_status === 'done') {
-          await removeTask(taskId)
-          return body
-        } else if (task_status === 'failed') {
-          core.error(
-            `Instance task failed (details: ${body[taskName].details})`
-          )
-          core.setFailed('Failure occurred while waiting for instance.')
-          await removeTask(taskId)
-          return
-        }
-      } else {
-        core.setFailed(
-          `Failed to wait for instance (HTTP status code: ${response.status})`
-        )
-        return
-      }
-    } catch (error) {
-      core.error('Failed to fetch or remove instance task')
-      throw error
-    }
-  }
-}
-
-async function terminateInstanceRequest(runnerName) {
-  const url = config.input.slabUrl
-
-  const payload = {
-    runner_name: runnerName,
-    action: 'terminate',
-    sha: config.githubContext.sha,
-    git_ref: config.githubContext.ref
-  }
-
-  const body = JSON.stringify(payload)
-  const signature = getSignature(body)
-
-  try {
-    core.info(`Request instance termination (runner: ${runnerName})`)
-
-    const response = await fetch(concat_path(url, 'job'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Slab-Repository': `${config.githubContext.owner}/${config.githubContext.repo}`,
-        'X-Slab-Command': 'stop_instance',
-        'X-Hub-Signature-256': `sha256=${signature}`
-      },
-      body: body.toString()
-    })
+    core.info('Checking...')
+    const response = await getTask(taskId)
 
     if (response.ok) {
-      core.info('Instance termination successfully requested')
-      return response.json()
+      const body = await response.json()
+      const task_status = body[taskName].status.toLowerCase()
+
+      if (task_status === 'done') {
+        await removeTask(taskId)
+        return body
+      } else if (task_status === 'failed') {
+        core.error(`Instance task failed (details: ${body[taskName].details})`)
+        core.error('Failure occurred while waiting for instance.')
+        await removeTask(taskId)
+        throw new Error('instance task reports failure')
+      }
     } else {
-      const resp_body = await response.text()
-      core.setFailed(
-        `Instance termination request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+      core.error(
+        `Failed to wait for instance (HTTP status code: ${response.status})`
       )
+      throw new Error('instance waiting failed')
     }
-  } catch (error) {
-    core.error('Instance termination request has failed')
-    throw error
   }
 }
 
 async function getTask(taskId) {
-  try {
-    const url = config.input.slabUrl
-    const route = `task_status/${config.githubContext.repo}/${taskId}`
+  const url = config.input.slabUrl
+  const route = `task_status/${config.githubContext.repo}/${taskId}`
+  let response
 
-    const response = await fetch(concat_path(url, route))
-    if (response.ok) {
-      core.debug('Instance task successfully fetched')
-      return response
-    } else {
-      core.setFailed(
-        `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
-      )
-    }
+  try {
+    response = await fetch(concat_path(url, route))
   } catch (error) {
     core.error(`Failed to fetch task status with ID: ${taskId}`)
     throw error
   }
+
+  if (response.ok) {
+    core.debug('Instance task successfully fetched')
+    return response
+  } else {
+    core.error(
+      `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
+    )
+    throw new Error('task fetching failed')
+  }
 }
 
 async function removeTask(taskId) {
-  try {
-    const url = config.input.slabUrl
-    const route = `task_delete/${config.githubContext.repo}/${taskId}`
+  const url = config.input.slabUrl
+  const route = `task_delete/${config.githubContext.repo}/${taskId}`
+  let response
 
-    const response = await fetch(concat_path(url, route), {
+  try {
+    response = await fetch(concat_path(url, route), {
       method: 'DELETE'
     })
-    if (response.ok) {
-      core.debug('Instance task successfully removed')
-      return response
-    } else {
-      core.setFailed(
-        `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
-      )
-    }
   } catch (error) {
     core.error(`Failed to remove task status with ID: ${taskId}`)
     throw error
+  }
+
+  if (response.ok) {
+    core.debug('Instance task successfully removed')
+    return response
+  } else {
+    core.error(
+      `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
+    )
+    throw new Error('task removal failed')
   }
 }
 
 module.exports = {
   startInstanceRequest,
-  terminateInstanceRequest,
+  stopInstanceRequest,
   waitForInstance
 }
 
@@ -51861,33 +51863,68 @@ function setOutput(label) {
 async function start() {
   const provider = config.input.backend
 
-  const start_instance_response = await slab.startInstanceRequest()
+  let start_instance_response
+
+  for (let i = 1; i <= 3; i++) {
+    try {
+      start_instance_response = await slab.startInstanceRequest()
+      break
+    } catch (error) {
+      core.info('Retrying request now...')
+    }
+
+    if (i === 3) {
+      core.setFailed(
+        `${provider} instance start request has failed after 3 attempts`
+      )
+    }
+  }
+
+  setOutput(start_instance_response.runner_name)
+
   core.info(
     `${provider} instance details: ${JSON.stringify(
       start_instance_response.details
     )}`
   )
 
-  const wait_instance_response = await slab.waitForInstance(
-    start_instance_response.task_id,
-    'start'
-  )
+  try {
+    const wait_instance_response = await slab.waitForInstance(
+      start_instance_response.task_id,
+      'start'
+    )
 
-  const instance_id = wait_instance_response.start.instance_id
-  core.info(`${provider} instance started with ID: ${instance_id}`)
+    const instance_id = wait_instance_response.start.instance_id
+    core.info(`${provider} instance started with ID: ${instance_id}`)
 
-  setOutput(start_instance_response.runner_name)
-
-  await waitForRunnerRegistered(start_instance_response.runner_name)
+    await waitForRunnerRegistered(start_instance_response.runner_name)
+  } catch (error) {
+    core.info(`Clean up after error, stop ${provider} instance`)
+    await slab.stopInstanceRequest(start_instance_response.runner_name)
+  }
 }
 
 async function stop() {
-  const stop_instance_response = await slab.terminateInstanceRequest(
-    config.input.label
-  )
+  let stop_instance_response
+
+  for (let i = 1; i <= 3; i++) {
+    try {
+      stop_instance_response = await slab.stopInstanceRequest(
+        config.input.label
+      )
+      break
+    } catch (error) {
+      core.info('Retrying request now...')
+    }
+
+    if (i === 3) {
+      core.setFailed(`Instance stop request has failed after 3 attempts`)
+    }
+  }
+
   await slab.waitForInstance(stop_instance_response.task_id, 'stop')
 
-  core.info('Instance successfully terminated')
+  core.info('Instance successfully stopped')
 }
 
 async function run() {
