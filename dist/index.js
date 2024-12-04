@@ -49835,7 +49835,7 @@ async function waitForInstance(taskId, taskName) {
       const task_status = body[taskName].status.toLowerCase()
 
       if (task_status === 'done') {
-        await removeTask(taskId)
+        // await removeTask(taskId)
         return body
       } else if (task_status === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
@@ -51855,10 +51855,26 @@ const slab = __nccwpck_require__(4156)
 const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
 const { waitForRunnerRegistered } = __nccwpck_require__(6989)
+const utils = __nccwpck_require__(1608)
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
+
+// This variable should only be defined for cleanup purpose.
+let runner_name
+
+async function cleanup() {
+  if (runner_name) {
+    core.info('Stop instance after cancellation')
+    await slab.stopInstanceRequest(runner_name)
+  }
+}
+
+process.on('SIGINT', async function () {
+  await cleanup()
+  process.exit()
+})
 
 async function start() {
   const provider = config.input.backend
@@ -51868,6 +51884,7 @@ async function start() {
   for (let i = 1; i <= 3; i++) {
     try {
       start_instance_response = await slab.startInstanceRequest()
+      runner_name = start_instance_response.runner_name
       break
     } catch (error) {
       core.info('Retrying request now...')
@@ -51885,6 +51902,9 @@ async function start() {
       start_instance_response.details
     )}`
   )
+
+  core.info('[DEBUG] About to wait 30 seconds for cancelation') // DEBUG
+  await utils.sleep(30) // DEBUG
 
   try {
     const wait_instance_response = await slab.waitForInstance(
