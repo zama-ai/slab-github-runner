@@ -25,7 +25,8 @@ async function startInstanceRequest() {
   const details = {
     backend: {
       provider,
-      profile: config.input.profile
+      profile: config.input.profile,
+      create_watchdog_task: true
     }
   }
 
@@ -127,6 +128,9 @@ async function waitForInstance(taskId, taskName) {
       const task_status = body[taskName].status.toLowerCase()
 
       if (task_status === 'done') {
+        if (taskName === 'start') {
+          await acknowledgeTaskDone(taskId)
+        }
         await removeTask(taskId)
         return body
       } else if (task_status === 'failed') {
@@ -189,6 +193,31 @@ async function removeTask(taskId) {
       `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
     throw new Error('task removal failed')
+  }
+}
+
+async function acknowledgeTaskDone(taskId) {
+  const url = config.input.slabUrl
+  const route = `task_ack_done/${config.githubContext.repo}/${taskId}`
+  let response
+
+  try {
+    response = await fetch(concat_path(url, route), {
+      method: 'POST'
+    })
+  } catch (error) {
+    core.error(`Failed to acknowledge task done with ID: ${taskId}`)
+    throw error
+  }
+
+  if (response.ok) {
+    core.debug('Instance task successfully acknowledged')
+    return response
+  } else {
+    core.error(
+      `Instance task acknowledgment request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
+    )
+    throw new Error('task acknowledging failed')
   }
 }
 

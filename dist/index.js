@@ -49733,7 +49733,8 @@ async function startInstanceRequest() {
   const details = {
     backend: {
       provider,
-      profile: config.input.profile
+      profile: config.input.profile,
+      create_watchdog_task: true
     }
   }
 
@@ -49835,6 +49836,9 @@ async function waitForInstance(taskId, taskName) {
       const task_status = body[taskName].status.toLowerCase()
 
       if (task_status === 'done') {
+        if (taskName === 'start') {
+          await acknowledgeTaskDone(taskId)
+        }
         await removeTask(taskId)
         return body
       } else if (task_status === 'failed') {
@@ -49897,6 +49901,31 @@ async function removeTask(taskId) {
       `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
     throw new Error('task removal failed')
+  }
+}
+
+async function acknowledgeTaskDone(taskId) {
+  const url = config.input.slabUrl
+  const route = `task_ack_done/${config.githubContext.repo}/${taskId}`
+  let response
+
+  try {
+    response = await fetch(concat_path(url, route), {
+      method: 'POST'
+    })
+  } catch (error) {
+    core.error(`Failed to acknowledge task done with ID: ${taskId}`)
+    throw error
+  }
+
+  if (response.ok) {
+    core.debug('Instance task successfully acknowledged')
+    return response
+  } else {
+    core.error(
+      `Instance task acknowledgment request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
+    )
+    throw new Error('task acknowledging failed')
   }
 }
 
@@ -51855,10 +51884,26 @@ const slab = __nccwpck_require__(4156)
 const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
 const { waitForRunnerRegistered } = __nccwpck_require__(6989)
+const utils = __nccwpck_require__(1608)
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
+
+// This variable should only be defined for cleanup purpose.
+let runner_name
+
+async function cleanup() {
+  if (runner_name) {
+    core.info('Stop instance after cancellation')
+    await slab.stopInstanceRequest(runner_name)
+  }
+}
+
+process.on('SIGINT', async function () {
+  await cleanup()
+  process.exit()
+})
 
 async function start() {
   const provider = config.input.backend
@@ -51868,6 +51913,7 @@ async function start() {
   for (let i = 1; i <= 3; i++) {
     try {
       start_instance_response = await slab.startInstanceRequest()
+      runner_name = start_instance_response.runner_name
       break
     } catch (error) {
       core.info('Retrying request now...')
