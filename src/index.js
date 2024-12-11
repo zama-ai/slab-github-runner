@@ -2,10 +2,26 @@ const slab = require('./slab')
 const config = require('./config')
 const core = require('@actions/core')
 const { waitForRunnerRegistered } = require('./gh')
+const utils = require('./utils')
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
+
+// This variable should only be defined for cleanup purpose.
+let runner_name
+
+async function cleanup() {
+  if (runner_name) {
+    core.info('Stop instance after cancellation')
+    await slab.stopInstanceRequest(runner_name)
+  }
+}
+
+process.on('SIGINT', async function () {
+  await cleanup()
+  process.exit()
+})
 
 async function start() {
   const provider = config.input.backend
@@ -15,6 +31,7 @@ async function start() {
   for (let i = 1; i <= 3; i++) {
     try {
       start_instance_response = await slab.startInstanceRequest()
+      runner_name = start_instance_response.runner_name
       break
     } catch (error) {
       core.info('Retrying request now...')
