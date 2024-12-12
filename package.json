@@ -28,11 +28,13 @@
     "ci-test": "jest --passWithNoTests",
     "format:write": "prettier --write **/*.js",
     "format:check": "prettier --check **/*.js",
+    "format:codebase": "prettier --write **/*js **/*.yml **/*.yaml **/*.md",
+    "format:standardjs": "standard --fix",
     "lint": "npx eslint . -c ./.github/linters/.eslintrc.yml",
     "package": "ncc build src/index.js --license licenses.txt",
     "package:watch": "npm run package -- --watch",
     "test": "jest --passWithNoTests",
-    "all": "npm run format:write && npm run lint && npm run test && npm run package"
+    "all": "npm run format:standardjs && npm run format:write && npm run lint && npm run test && npm run package"
   },
   "eslintConfig": {
     "extends": "./.github/linters/.eslintrc.yml"

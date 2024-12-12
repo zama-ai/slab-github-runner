@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        provider: [ aws, hyperstack ]
+        provider: [aws, hyperstack]
       fail-fast: false
     outputs:
       runner-aws: ${{ steps.gen-output.outputs.runner_aws }}
@@ -45,14 +45,14 @@ jobs:
 
   test-runner-alive-aws:
     name: Test runner is alive (AWS)
-    needs: [ action-start ]
+    needs: [action-start]
     uses: ./.github/workflows/registered_runner.yml
     with:
       runner-name: ${{ needs.action-start.outputs.runner-aws }}
 
   test-runner-alive-hyperstack:
     name: Test runner is alive (Hyperstack)
-    needs: [ action-start ]
+    needs: [action-start]
     uses: ./.github/workflows/registered_runner.yml
     with:
       runner-name: ${{ needs.action-start.outputs.runner-hyperstack }}
@@ -60,12 +60,15 @@ jobs:
   action-stop:
     name: GitHub Actions Test (terminate)
     runs-on: ubuntu-latest
-    needs: [ action-start, test-runner-alive-aws, test-runner-alive-hyperstack ]
+    needs: [action-start, test-runner-alive-aws, test-runner-alive-hyperstack]
     if: ${{ always() && needs.action-start.result != 'skipped' }}
     strategy:
       matrix:
-        runner: [ "${{ needs.action-start.outputs.runner-aws }}",
-                  "${{ needs.action-start.outputs.runner-hyperstack }}" ]
+        runner:
+          [
+            '${{ needs.action-start.outputs.runner-aws }}',
+            '${{ needs.action-start.outputs.runner-hyperstack }}'
+          ]
       fail-fast: false
     steps:
       - name: Checkout
@@ -84,7 +87,7 @@ jobs:
 
   test-runner-removed-aws:
     name: Test runner is removed (AWS)
-    needs: [ action-start, action-stop ]
+    needs: [action-start, action-stop]
     uses: ./.github/workflows/removed_runner.yml
     with:
       runner-name: ${{ needs.action-start.outputs.runner-aws }}
@@ -94,7 +97,7 @@ jobs:
 
   test-runner-removed-hyperstack:
     name: Test runner is removed (Hyperstack)
-    needs: [ action-start, action-stop ]
+    needs: [action-start, action-stop]
     uses: ./.github/workflows/removed_runner.yml
     with:
       runner-name: ${{ needs.action-start.outputs.runner-hyperstack }}

@@ -9,7 +9,7 @@ function getSignature(content) {
   return hmac.digest('hex')
 }
 
-function concat_path(url, path) {
+function concatPath(url, path) {
   if (url.endsWith('/')) {
     // Multiple '/' char at the end of URL is fine.
     return url.concat(path)
@@ -43,7 +43,7 @@ async function startInstanceRequest() {
   core.info(`Request ${provider} instance start`)
 
   try {
-    response = await fetch(concat_path(url, 'job'), {
+    response = await fetch(concatPath(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ async function startInstanceRequest() {
       body: body.toString()
     })
   } catch (error) {
-    core.error(`Fetch call has failed`)
+    core.error('Fetch call has failed')
     throw error
   }
 
@@ -62,9 +62,9 @@ async function startInstanceRequest() {
     core.info(`${provider} instance start successfully requested`)
     return await response.json()
   } else {
-    const resp_body = await response.text()
+    const respBody = await response.text()
     core.error(
-      `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+      `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance start request failed')
   }
@@ -86,7 +86,7 @@ async function stopInstanceRequest(runnerName) {
   core.info(`Request instance stop (runner: ${runnerName})`)
 
   try {
-    response = await fetch(concat_path(url, 'job'), {
+    response = await fetch(concatPath(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -105,9 +105,9 @@ async function stopInstanceRequest(runnerName) {
     core.info('Instance stop successfully requested')
     return response.json()
   } else {
-    const resp_body = await response.text()
+    const respBody = await response.text()
     core.error(
-      `Instance stop request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+      `Instance stop request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance stop request failed')
   }
@@ -125,15 +125,15 @@ async function waitForInstance(taskId, taskName) {
 
     if (response.ok) {
       const body = await response.json()
-      const task_status = body[taskName].status.toLowerCase()
+      const taskStatus = body[taskName].status.toLowerCase()
 
-      if (task_status === 'done') {
+      if (taskStatus === 'done') {
         if (taskName === 'start') {
           await acknowledgeTaskDone(taskId)
         }
         await removeTask(taskId)
         return body
-      } else if (task_status === 'failed') {
+      } else if (taskStatus === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
         core.error('Failure occurred while waiting for instance.')
         await removeTask(taskId)
@@ -154,7 +154,7 @@ async function getTask(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route))
+    response = await fetch(concatPath(url, route))
   } catch (error) {
     core.error(`Failed to fetch task status with ID: ${taskId}`)
     throw error
@@ -177,7 +177,7 @@ async function removeTask(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route), {
+    response = await fetch(concatPath(url, route), {
       method: 'DELETE'
     })
   } catch (error) {
@@ -202,7 +202,7 @@ async function acknowledgeTaskDone(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route), {
+    response = await fetch(concatPath(url, route), {
       method: 'POST'
     })
   } catch (error) {
