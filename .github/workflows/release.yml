@@ -1,0 +1,30 @@
+# Release new version of Slab action.
+name: Release Slab action
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Do release
+        uses: codfish/semantic-release-action@b621d34fabe0940f031e89b6ebfea28322892a10
+        with:
+          branches: main
+          additional_packages: |
+            [
+              '@semantic-release/github',
+              '@semantic-release/git',
+              '@semantic-release/changelog',
+            ]
+        env:
+          GITHUB_TOKEN: ${{ secrets.SLAB_ACTIONS_TOKEN }}
