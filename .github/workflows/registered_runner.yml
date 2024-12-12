@@ -8,11 +8,14 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   test-runner:
     name: Test Runner
     runs-on: ${{ inputs.runner-name }}
-    timeout-minutes: 5  # Job should be picked very quickly
+    timeout-minutes: 5 # Job should be picked very quickly
     steps:
       - name: Runner registered
         run: |

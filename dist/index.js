@@ -49806,31 +49806,31 @@ class Config {
     //
 
     if (!this.input.mode) {
-      throw new Error(`The 'mode' input is not specified`)
+      throw new Error("The 'mode' input is not specified")
     }
 
     if (!this.input.githubToken) {
-      throw new Error(`The 'github-token' input is not specified`)
+      throw new Error("The 'github-token' input is not specified")
     }
 
     if (!this.input.slabUrl) {
-      throw new Error(`The 'slab-url' input is not specified`)
+      throw new Error("The 'slab-url' input is not specified")
     }
 
     if (!this.input.jobSecret) {
-      throw new Error(`The 'job-secret' input is not specified`)
+      throw new Error("The 'job-secret' input is not specified")
     }
 
     if (this.input.mode === 'start') {
       if (!this.input.backend || !this.input.profile) {
         throw new Error(
-          `Not all the required inputs are provided for the 'start' mode`
+          "Not all the required inputs are provided for the 'start' mode"
         )
       }
     } else if (this.input.mode === 'stop') {
       if (!this.input.label) {
         throw new Error(
-          `Not all the required inputs are provided for the 'stop' mode`
+          "Not all the required inputs are provided for the 'stop' mode"
         )
       }
     } else {
@@ -49935,7 +49935,7 @@ function getSignature(content) {
   return hmac.digest('hex')
 }
 
-function concat_path(url, path) {
+function concatPath(url, path) {
   if (url.endsWith('/')) {
     // Multiple '/' char at the end of URL is fine.
     return url.concat(path)
@@ -49969,7 +49969,7 @@ async function startInstanceRequest() {
   core.info(`Request ${provider} instance start`)
 
   try {
-    response = await fetch(concat_path(url, 'job'), {
+    response = await fetch(concatPath(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49980,7 +49980,7 @@ async function startInstanceRequest() {
       body: body.toString()
     })
   } catch (error) {
-    core.error(`Fetch call has failed`)
+    core.error('Fetch call has failed')
     throw error
   }
 
@@ -49988,9 +49988,9 @@ async function startInstanceRequest() {
     core.info(`${provider} instance start successfully requested`)
     return await response.json()
   } else {
-    const resp_body = await response.text()
+    const respBody = await response.text()
     core.error(
-      `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+      `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance start request failed')
   }
@@ -50012,7 +50012,7 @@ async function stopInstanceRequest(runnerName) {
   core.info(`Request instance stop (runner: ${runnerName})`)
 
   try {
-    response = await fetch(concat_path(url, 'job'), {
+    response = await fetch(concatPath(url, 'job'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50031,9 +50031,9 @@ async function stopInstanceRequest(runnerName) {
     core.info('Instance stop successfully requested')
     return response.json()
   } else {
-    const resp_body = await response.text()
+    const respBody = await response.text()
     core.error(
-      `Instance stop request has failed (HTTP status code: ${response.status}, body: ${resp_body})`
+      `Instance stop request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance stop request failed')
   }
@@ -50051,15 +50051,15 @@ async function waitForInstance(taskId, taskName) {
 
     if (response.ok) {
       const body = await response.json()
-      const task_status = body[taskName].status.toLowerCase()
+      const taskStatus = body[taskName].status.toLowerCase()
 
-      if (task_status === 'done') {
+      if (taskStatus === 'done') {
         if (taskName === 'start') {
           await acknowledgeTaskDone(taskId)
         }
         await removeTask(taskId)
         return body
-      } else if (task_status === 'failed') {
+      } else if (taskStatus === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
         core.error('Failure occurred while waiting for instance.')
         await removeTask(taskId)
@@ -50080,7 +50080,7 @@ async function getTask(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route))
+    response = await fetch(concatPath(url, route))
   } catch (error) {
     core.error(`Failed to fetch task status with ID: ${taskId}`)
     throw error
@@ -50103,7 +50103,7 @@ async function removeTask(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route), {
+    response = await fetch(concatPath(url, route), {
       method: 'DELETE'
     })
   } catch (error) {
@@ -50128,7 +50128,7 @@ async function acknowledgeTaskDone(taskId) {
   let response
 
   try {
-    response = await fetch(concat_path(url, route), {
+    response = await fetch(concatPath(url, route), {
       method: 'POST'
     })
   } catch (error) {
@@ -52102,19 +52102,18 @@ const slab = __nccwpck_require__(4156)
 const config = __nccwpck_require__(4570)
 const core = __nccwpck_require__(2186)
 const { waitForRunnerRegistered } = __nccwpck_require__(6989)
-const utils = __nccwpck_require__(1608)
 
 function setOutput(label) {
   core.setOutput('label', label)
 }
 
 // This variable should only be defined for cleanup purpose.
-let runner_name
+let runnerName
 
 async function cleanup() {
-  if (runner_name) {
+  if (runnerName) {
     core.info('Stop instance after cancellation')
-    await slab.stopInstanceRequest(runner_name)
+    await slab.stopInstanceRequest(runnerName)
   }
 }
 
@@ -52126,12 +52125,12 @@ process.on('SIGINT', async function () {
 async function start() {
   const provider = config.input.backend
 
-  let start_instance_response
+  let startInstanceResponse
 
   for (let i = 1; i <= 3; i++) {
     try {
-      start_instance_response = await slab.startInstanceRequest()
-      runner_name = start_instance_response.runner_name
+      startInstanceResponse = await slab.startInstanceRequest()
+      runnerName = startInstanceResponse.runner_name
       break
     } catch (error) {
       core.info('Retrying request now...')
@@ -52144,49 +52143,47 @@ async function start() {
     }
   }
 
-  setOutput(start_instance_response.runner_name)
+  setOutput(startInstanceResponse.runner_name)
 
   core.info(
     `${provider} instance details: ${JSON.stringify(
-      start_instance_response.details
+      startInstanceResponse.details
     )}`
   )
 
   try {
-    const wait_instance_response = await slab.waitForInstance(
-      start_instance_response.task_id,
+    const waitInstanceResponse = await slab.waitForInstance(
+      startInstanceResponse.task_id,
       'start'
     )
 
-    const instance_id = wait_instance_response.start.instance_id
-    core.info(`${provider} instance started with ID: ${instance_id}`)
+    const instanceId = waitInstanceResponse.start.instance_id
+    core.info(`${provider} instance started with ID: ${instanceId}`)
 
-    await waitForRunnerRegistered(start_instance_response.runner_name)
+    await waitForRunnerRegistered(startInstanceResponse.runner_name)
   } catch (error) {
     core.info(`Clean up after error, stop ${provider} instance`)
-    await slab.stopInstanceRequest(start_instance_response.runner_name)
+    await slab.stopInstanceRequest(startInstanceResponse.runner_name)
   }
 }
 
 async function stop() {
-  let stop_instance_response
+  let stopInstanceResponse
 
   for (let i = 1; i <= 3; i++) {
     try {
-      stop_instance_response = await slab.stopInstanceRequest(
-        config.input.label
-      )
+      stopInstanceResponse = await slab.stopInstanceRequest(config.input.label)
       break
     } catch (error) {
       core.info('Retrying request now...')
     }
 
     if (i === 3) {
-      core.setFailed(`Instance stop request has failed after 3 attempts`)
+      core.setFailed('Instance stop request has failed after 3 attempts')
     }
   }
 
-  await slab.waitForInstance(stop_instance_response.task_id, 'stop')
+  await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
 
   core.info('Instance successfully stopped')
 }

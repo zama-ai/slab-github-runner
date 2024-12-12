@@ -28,31 +28,31 @@ class Config {
     //
 
     if (!this.input.mode) {
-      throw new Error(`The 'mode' input is not specified`)
+      throw new Error("The 'mode' input is not specified")
     }
 
     if (!this.input.githubToken) {
-      throw new Error(`The 'github-token' input is not specified`)
+      throw new Error("The 'github-token' input is not specified")
     }
 
     if (!this.input.slabUrl) {
-      throw new Error(`The 'slab-url' input is not specified`)
+      throw new Error("The 'slab-url' input is not specified")
     }
 
     if (!this.input.jobSecret) {
-      throw new Error(`The 'job-secret' input is not specified`)
+      throw new Error("The 'job-secret' input is not specified")
     }
 
     if (this.input.mode === 'start') {
       if (!this.input.backend || !this.input.profile) {
         throw new Error(
-          `Not all the required inputs are provided for the 'start' mode`
+          "Not all the required inputs are provided for the 'start' mode"
         )
       }
     } else if (this.input.mode === 'stop') {
       if (!this.input.label) {
         throw new Error(
-          `Not all the required inputs are provided for the 'stop' mode`
+          "Not all the required inputs are provided for the 'stop' mode"
         )
       }
     } else {

@@ -1,8 +1,8 @@
 # On-demand self-hosted runner for GitHub Actions
 
-Start your EC2 [self-hosted runner](https://docs.github.com/en/free-pro-team@latest/actions/hosting-your-own-runners)
-right before you need it.
-Run the job on it. Finally, stop it when you finish.
+Start your EC2
+[self-hosted runner](https://docs.github.com/en/free-pro-team@latest/actions/hosting-your-own-runners)
+right before you need it. Run the job on it. Finally, stop it when you finish.
 And all this automatically as a part of your GitHub Actions workflow.
 
 It relies on Slab CI bot to do all the heavy-lifting.
@@ -22,7 +22,7 @@ See [below](#example) the YAML code of the depicted workflow.
 ### Inputs
 
 | Name           | Required                    | Description                                                                                                                                                                                                     |
-|----------------|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mode`         | Always required.            | Specify here which mode you want to use: `start` to start a new runner, `stop` to stop the previously created runner.                                                                                           |
 | `github-token` | Always required.            | GitHub Personal Access Token with the `repo` scope assigned.                                                                                                                                                    |
 | `slab-url`     | Always required.            | URL to Slab CI server.                                                                                                                                                                                          |
@@ -33,13 +33,14 @@ See [below](#example) the YAML code of the depicted workflow.
 
 ### Outputs
 
-| Name          | Description                                                                                                                                                                                                           |
-|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `label`       | Name of the unique label assigned to the runner. The label is used in two cases: to use as the input of `runs-on` property for the following jobs and to remove the runner from GitHub when it is not needed anymore. |
+| Name    | Description                                                                                                                                                                                                           |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `label` | Name of the unique label assigned to the runner. The label is used in two cases: to use as the input of `runs-on` property for the following jobs and to remove the runner from GitHub when it is not needed anymore. |
 
 ### Examples
 
-Here's an example workflow. It uses a backend profile declared in `ci/slab.toml` within the calling repository
+Here's an example workflow. It uses a backend profile declared in `ci/slab.toml`
+within the calling repository
 
 ```yml
 name: do-the-job
@@ -62,7 +63,7 @@ jobs:
           profile: cpu-test
 
   do-the-job:
-      # ... #
+    # ... #
 
   stop-runner:
     name: Stop self-hosted EC2 runner

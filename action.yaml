@@ -1,5 +1,7 @@
 name: On-demand self-hosted runner for GitHub Actions
-description: GitHub Action for automatic AWS EC2 instance provisioning as a GitHub Actions self-hosted runner.
+description:
+  GitHub Action for automatic AWS EC2 instance provisioning as a GitHub Actions
+  self-hosted runner.
 author: zama-ai
 branding:
   icon: 'box'
@@ -25,27 +27,26 @@ inputs:
     required: true
   backend:
     description: >-
-      Backend provider name to look for in slab.toml file in repository that uses the action.
-      This input is required if you use the 'start' mode.
+      Backend provider name to look for in slab.toml file in repository that
+      uses the action. This input is required if you use the 'start' mode.
     required: false
   profile:
     description: >-
-      Profile to use as described slab.toml file in repository that uses the action.
-      This input is required if you use the 'start' mode.
+      Profile to use as described slab.toml file in repository that uses the
+      action. This input is required if you use the 'start' mode.
     required: false
   label:
     description: >-
-      Name of the unique label assigned to the runner.
-      The label is used to remove the runner from GitHub when the runner is not needed anymore.
-      This input is required if you use the 'stop' mode.
+      Name of the unique label assigned to the runner. The label is used to
+      remove the runner from GitHub when the runner is not needed anymore. This
+      input is required if you use the 'stop' mode.
     required: false
 
 outputs:
   label:
     description: >-
-      Name of the unique label assigned to the runner.
-      The label is used in two cases:
-      - to use as the input of 'runs-on' property for the following jobs;
+      Name of the unique label assigned to the runner. The label is used in two
+      cases: - to use as the input of 'runs-on' property for the following jobs;
       - to remove the runner from GitHub when it is not needed anymore.
 runs:
   using: node20
