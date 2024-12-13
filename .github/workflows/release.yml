@@ -27,4 +27,4 @@ jobs:
               '@semantic-release/changelog',
             ]
         env:
-          GITHUB_TOKEN: ${{ secrets.SLAB_ACTIONS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
