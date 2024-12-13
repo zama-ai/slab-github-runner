@@ -20,7 +20,7 @@ jobs:
         uses: codfish/semantic-release-action@b621d34fabe0940f031e89b6ebfea28322892a10
         with:
           branches: main
-          additional_packages: |
+          additional-packages: |
             [
               '@semantic-release/github',
               '@semantic-release/git',
