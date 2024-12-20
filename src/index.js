@@ -64,6 +64,7 @@ async function start() {
   } catch (error) {
     core.info(`Clean up after error, stop ${provider} instance`)
     await slab.stopInstanceRequest(startInstanceResponse.runner_name)
+    core.setFailed(`${provider} instance start has failed`)
   }
 }
 
