@@ -49862,20 +49862,23 @@ const utils = __nccwpck_require__(1608)
 // it's not possible to get it in any other way.
 async function getRunner(label) {
   const octokit = github.getOctokit(config.input.githubToken)
+  let runners = []
 
   try {
-    const runners = await octokit.paginate(
+    runners = await octokit.paginate(
       'GET /repos/{owner}/{repo}/actions/runners',
       {
         owner: config.githubContext.owner,
         repo: config.githubContext.repo
       }
     )
-    const foundRunners = _.filter(runners, { name: label })
-    return foundRunners.length > 0 ? foundRunners[0] : null
   } catch (error) {
+    core.error(`Failed to fetch runners: ${error.message}`)
     return null
   }
+
+  const foundRunners = _.filter(runners, { name: label })
+  return foundRunners.length > 0 ? foundRunners[0] : null
 }
 
 async function waitForRunnerRegistered(label) {
