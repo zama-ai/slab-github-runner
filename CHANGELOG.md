@@ -2,10 +2,10 @@
 
 ## [1.4.1](https://github.com/zama-ai/slab-github-runner/compare/v1.4.0...v1.4.1) (2024-12-20)
 
-
 ### Bug Fixes
 
-* **action:** set action as failed on start error ([95337e0](https://github.com/zama-ai/slab-github-runner/commit/95337e06e8537240757a8ac1eae469cfba00d1c7))
+- **action:** set action as failed on start error
+  ([95337e0](https://github.com/zama-ai/slab-github-runner/commit/95337e06e8537240757a8ac1eae469cfba00d1c7))
 
 # [1.4.0](https://github.com/zama-ai/slab-github-runner/compare/v1.3.0...v1.4.0) (2024-12-13)
 
