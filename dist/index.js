@@ -49977,7 +49977,7 @@ async function startInstanceRequest() {
       headers: {
         'Content-Type': 'application/json',
         'X-Slab-Repository': `${config.githubContext.owner}/${config.githubContext.repo}`,
-        'X-Slab-Command': 'start_instance',
+        'X-Slab-Command': 'start_instance_v2',
         'X-Hub-Signature-256': `sha256=${signature}`
       },
       body: body.toString()
@@ -50045,6 +50045,8 @@ async function stopInstanceRequest(runnerName) {
 async function waitForInstance(taskId, taskName) {
   core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
 
+  let runnerName
+
   // while (true) equivalent to please ESLint
   for (;;) {
     await utils.sleep(15)
@@ -50056,12 +50058,21 @@ async function waitForInstance(taskId, taskName) {
       const body = await response.json()
       const taskStatus = body[taskName].status.toLowerCase()
 
+      core.info(`DEBUG Instance task status: ${taskStatus}`) // DEBUG
+      core.info(`DEBUG Instance task details: ${body[taskName].details}`) // DEBUG
+
       if (taskStatus === 'done') {
         if (taskName === 'start') {
           await acknowledgeTaskDone(taskId)
         }
         await removeTask(taskId)
+        body.runner_name = runnerName
         return body
+      } else if (
+        taskStatus === 'inprogress' &&
+        body[taskName].details.runner_name !== undefined
+      ) {
+        runnerName = body[taskName].details.runner_name
       } else if (taskStatus === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
         core.error('Failure occurred while waiting for instance.')
@@ -50079,7 +50090,7 @@ async function waitForInstance(taskId, taskName) {
 
 async function getTask(taskId) {
   const url = config.input.slabUrl
-  const route = `task_status/${config.githubContext.repo}/${taskId}`
+  const route = `backend_task/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -50102,7 +50113,7 @@ async function getTask(taskId) {
 
 async function removeTask(taskId) {
   const url = config.input.slabUrl
-  const route = `task_delete/${config.githubContext.repo}/${taskId}`
+  const route = `backend_task/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -50127,7 +50138,7 @@ async function removeTask(taskId) {
 
 async function acknowledgeTaskDone(taskId) {
   const url = config.input.slabUrl
-  const route = `task_ack_done/${config.githubContext.repo}/${taskId}`
+  const route = `backend_task_ack_done/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
