@@ -49977,7 +49977,7 @@ async function startInstanceRequest() {
       headers: {
         'Content-Type': 'application/json',
         'X-Slab-Repository': `${config.githubContext.owner}/${config.githubContext.repo}`,
-        'X-Slab-Command': 'start_instance',
+        'X-Slab-Command': 'start_instance_v2',
         'X-Hub-Signature-256': `sha256=${signature}`
       },
       body: body.toString()
@@ -50042,15 +50042,56 @@ async function stopInstanceRequest(runnerName) {
   }
 }
 
-async function waitForInstance(taskId, taskName) {
-  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+async function waitForGithub(taskId, taskName) {
+  core.info(`Wait for GitHub on ${taskName} (task ID: ${taskId})`)
+
+  const routeRootPath = 'github_task'
 
   // while (true) equivalent to please ESLint
   for (;;) {
     await utils.sleep(15)
 
     core.info('Checking...')
-    const response = await getTask(taskId)
+    const response = await getTask(routeRootPath, taskId)
+
+    if (response.ok) {
+      const body = await response.json()
+      const taskStatus = body[taskName].status.toLowerCase()
+
+      if (taskStatus === 'done') {
+        return body
+      } else if (taskStatus === 'failed') {
+        if (taskName === 'runner_unregister') {
+          core.warning(
+            `Github runner ${body[taskName].details.runner_name} unregistration failed.`
+          )
+          return body
+        } else {
+          core.error(`GitHub task failed (details: ${body[taskName].details})`)
+          core.error('Failure occurred while waiting for GitHub.')
+          throw new Error('github task reports failure')
+        }
+      }
+    } else {
+      core.error(
+        `Failed to wait for GitHub task (HTTP status code: ${response.status})`
+      )
+      throw new Error('github waiting failed')
+    }
+  }
+}
+
+async function waitForInstance(taskId, taskName) {
+  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+
+  const routeRootPath = 'backend_task'
+
+  // while (true) equivalent to please ESLint
+  for (;;) {
+    await utils.sleep(15)
+
+    core.info('Checking...')
+    const response = await getTask(routeRootPath, taskId)
 
     if (response.ok) {
       const body = await response.json()
@@ -50060,12 +50101,10 @@ async function waitForInstance(taskId, taskName) {
         if (taskName === 'start') {
           await acknowledgeTaskDone(taskId)
         }
-        await removeTask(taskId)
         return body
       } else if (taskStatus === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
         core.error('Failure occurred while waiting for instance.')
-        await removeTask(taskId)
         throw new Error('instance task reports failure')
       }
     } else {
@@ -50077,9 +50116,9 @@ async function waitForInstance(taskId, taskName) {
   }
 }
 
-async function getTask(taskId) {
+async function getTask(routeRootPath, taskId) {
   const url = config.input.slabUrl
-  const route = `task_status/${config.githubContext.repo}/${taskId}`
+  const route = `${routeRootPath}/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -50100,34 +50139,9 @@ async function getTask(taskId) {
   }
 }
 
-async function removeTask(taskId) {
-  const url = config.input.slabUrl
-  const route = `task_delete/${config.githubContext.repo}/${taskId}`
-  let response
-
-  try {
-    response = await fetch(concatPath(url, route), {
-      method: 'DELETE'
-    })
-  } catch (error) {
-    core.error(`Failed to remove task status with ID: ${taskId}`)
-    throw error
-  }
-
-  if (response.ok) {
-    core.debug('Instance task successfully removed')
-    return response
-  } else {
-    core.error(
-      `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
-    )
-    throw new Error('task removal failed')
-  }
-}
-
 async function acknowledgeTaskDone(taskId) {
   const url = config.input.slabUrl
-  const route = `task_ack_done/${config.githubContext.repo}/${taskId}`
+  const route = `backend_task_ack_done/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -50153,6 +50167,7 @@ async function acknowledgeTaskDone(taskId) {
 module.exports = {
   startInstanceRequest,
   stopInstanceRequest,
+  waitForGithub,
   waitForInstance
 }
 
@@ -52110,7 +52125,6 @@ function setOutput(label) {
   core.setOutput('label', label)
 }
 
-// This variable should only be defined for cleanup purpose.
 let runnerName
 
 async function cleanup() {
@@ -52133,7 +52147,6 @@ async function start() {
   for (let i = 1; i <= 3; i++) {
     try {
       startInstanceResponse = await slab.startInstanceRequest()
-      runnerName = startInstanceResponse.runner_name
       break
     } catch (error) {
       core.info('Retrying request now...')
@@ -52141,17 +52154,28 @@ async function start() {
 
     if (i === 3) {
       core.setFailed(
-        `${provider} instance start request has failed after 3 attempts`
+        `${provider} instance start request has failed after 3 attempts (reason: configuration fetching has failed)`
       )
+      return
     }
   }
 
-  setOutput(startInstanceResponse.runner_name)
+  let waitGithubResponse
+  try {
+    waitGithubResponse = await slab.waitForGithub(
+      startInstanceResponse.task_id,
+      'configuration_fetching'
+    )
+  } catch (error) {
+    core.setFailed(`${provider} instance start has failed`)
+    return
+  }
+
+  runnerName = waitGithubResponse.configuration_fetching.runner_name
+  setOutput(runnerName)
 
   core.info(
-    `${provider} instance details: ${JSON.stringify(
-      startInstanceResponse.details
-    )}`
+    `${provider} instance details: ${waitGithubResponse.configuration_fetching.details}`
   )
 
   try {
@@ -52163,10 +52187,10 @@ async function start() {
     const instanceId = waitInstanceResponse.start.instance_id
     core.info(`${provider} instance started with ID: ${instanceId}`)
 
-    await waitForRunnerRegistered(startInstanceResponse.runner_name)
+    await waitForRunnerRegistered(runnerName)
   } catch (error) {
     core.info(`Clean up after error, stop ${provider} instance`)
-    await slab.stopInstanceRequest(startInstanceResponse.runner_name)
+    await slab.stopInstanceRequest(runnerName)
     core.setFailed(`${provider} instance start has failed`)
   }
 }
@@ -52184,12 +52208,35 @@ async function stop() {
 
     if (i === 3) {
       core.setFailed('Instance stop request has failed after 3 attempts')
+      return
     }
   }
 
-  await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
+  try {
+    const waitGithubResponse = await slab.waitForGithub(
+      stopInstanceResponse.task_id,
+      'runner_unregister'
+    )
+    const taskStatus = waitGithubResponse.runner_unregister.status.toLowerCase()
+    if (taskStatus === 'done') {
+      core.info(
+        `Runner ${config.input.label} unregistered from GitHub successfully`
+      )
+    }
+  } catch (error) {
+    // Unregistration failure is not critical, so we just log it and continue.
+    core.warning('An error occurred while unregistering runner, check job logs')
+  }
 
-  core.info('Instance successfully stopped')
+  try {
+    await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
+    core.info('Instance successfully stopped')
+  } catch (error) {
+    // Unregistration failure is not critical, so we just log it and continue.
+    core.setFailed(
+      'An error occurred while stopping instance, check for zombie instance in backend provider console.'
+    )
+  }
 }
 
 async function run() {
