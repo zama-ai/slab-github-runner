@@ -7,7 +7,6 @@ function setOutput(label) {
   core.setOutput('label', label)
 }
 
-// This variable should only be defined for cleanup purpose.
 let runnerName
 
 async function cleanup() {
@@ -26,11 +25,15 @@ async function start() {
   const provider = config.input.backend
 
   let startInstanceResponse
+  let waitGithubResponse
 
   for (let i = 1; i <= 3; i++) {
     try {
       startInstanceResponse = await slab.startInstanceRequest()
-      runnerName = startInstanceResponse.runner_name
+      waitGithubResponse = await slab.waitForGithub(
+        startInstanceResponse.task_id,
+        'configuration_fetching'
+      )
       break
     } catch (error) {
       core.info('Retrying request now...')
@@ -38,17 +41,17 @@ async function start() {
 
     if (i === 3) {
       core.setFailed(
-        `${provider} instance start request has failed after 3 attempts`
+        `${provider} instance start request has failed after 3 attempts (reason: configuration fetching has failed)`
       )
+      return
     }
   }
 
-  setOutput(startInstanceResponse.runner_name)
+  runnerName = waitGithubResponse.configuration_fetching.runner_name
+  setOutput(runnerName)
 
   core.info(
-    `${provider} instance details: ${JSON.stringify(
-      startInstanceResponse.details
-    )}`
+    `${provider} instance details: ${waitGithubResponse.configuration_fetching.details}`
   )
 
   try {
@@ -60,10 +63,10 @@ async function start() {
     const instanceId = waitInstanceResponse.start.instance_id
     core.info(`${provider} instance started with ID: ${instanceId}`)
 
-    await waitForRunnerRegistered(startInstanceResponse.runner_name)
+    await waitForRunnerRegistered(runnerName)
   } catch (error) {
     core.info(`Clean up after error, stop ${provider} instance`)
-    await slab.stopInstanceRequest(startInstanceResponse.runner_name)
+    await slab.stopInstanceRequest(runnerName)
     core.setFailed(`${provider} instance start has failed`)
   }
 }
@@ -81,12 +84,35 @@ async function stop() {
 
     if (i === 3) {
       core.setFailed('Instance stop request has failed after 3 attempts')
+      return
     }
   }
 
-  await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
+  try {
+    const waitGithubResponse = await slab.waitForGithub(
+      stopInstanceResponse.task_id,
+      'runner_unregister'
+    )
+    const taskStatus = waitGithubResponse.runner_unregister.status.toLowerCase()
+    if (taskStatus === 'done') {
+      core.info(
+        `Runner ${config.input.label} unregistered from GitHub successfully`
+      )
+    }
+  } catch (error) {
+    // Unregistration failure is not critical, so we just log it and continue.
+    core.warning('An error occurred while unregistering runner, check job logs')
+  }
 
-  core.info('Instance successfully stopped')
+  try {
+    await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
+    core.info('Instance successfully stopped')
+  } catch (error) {
+    // Unregistration failure is not critical, so we just log it and continue.
+    core.setFailed(
+      'An error occurred while stopping instance, check for zombie instance in backend provider console.'
+    )
+  }
 }
 
 async function run() {
