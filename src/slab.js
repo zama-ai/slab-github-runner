@@ -48,7 +48,7 @@ async function startInstanceRequest() {
       headers: {
         'Content-Type': 'application/json',
         'X-Slab-Repository': `${config.githubContext.owner}/${config.githubContext.repo}`,
-        'X-Slab-Command': 'start_instance',
+        'X-Slab-Command': 'start_instance_v2',
         'X-Hub-Signature-256': `sha256=${signature}`
       },
       body: body.toString()
@@ -113,15 +113,56 @@ async function stopInstanceRequest(runnerName) {
   }
 }
 
-async function waitForInstance(taskId, taskName) {
-  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+async function waitForGithub(taskId, taskName) {
+  core.info(`Wait for GitHub on ${taskName} (task ID: ${taskId})`)
+
+  const routeRootPath = 'github_task'
 
   // while (true) equivalent to please ESLint
   for (;;) {
     await utils.sleep(15)
 
     core.info('Checking...')
-    const response = await getTask(taskId)
+    const response = await getTask(routeRootPath, taskId)
+
+    if (response.ok) {
+      const body = await response.json()
+      const taskStatus = body[taskName].status.toLowerCase()
+
+      if (taskStatus === 'done') {
+        return body
+      } else if (taskStatus === 'failed') {
+        if (taskName === 'runner_unregister') {
+          core.warning(
+            `Github runner ${body[taskName].details.runner_name} unregistration failed.`
+          )
+          return body
+        } else {
+          core.error(`GitHub task failed (details: ${body[taskName].details})`)
+          core.error('Failure occurred while waiting for GitHub.')
+          throw new Error('github task reports failure')
+        }
+      }
+    } else {
+      core.error(
+        `Failed to wait for GitHub task (HTTP status code: ${response.status})`
+      )
+      throw new Error('github waiting failed')
+    }
+  }
+}
+
+async function waitForInstance(taskId, taskName) {
+  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+
+  const routeRootPath = 'backend_task'
+
+  // while (true) equivalent to please ESLint
+  for (;;) {
+    await utils.sleep(15)
+
+    core.info('Checking...')
+    const response = await getTask(routeRootPath, taskId)
 
     if (response.ok) {
       const body = await response.json()
@@ -131,12 +172,10 @@ async function waitForInstance(taskId, taskName) {
         if (taskName === 'start') {
           await acknowledgeTaskDone(taskId)
         }
-        await removeTask(taskId)
         return body
       } else if (taskStatus === 'failed') {
         core.error(`Instance task failed (details: ${body[taskName].details})`)
         core.error('Failure occurred while waiting for instance.')
-        await removeTask(taskId)
         throw new Error('instance task reports failure')
       }
     } else {
@@ -148,9 +187,9 @@ async function waitForInstance(taskId, taskName) {
   }
 }
 
-async function getTask(taskId) {
+async function getTask(routeRootPath, taskId) {
   const url = config.input.slabUrl
-  const route = `task_status/${config.githubContext.repo}/${taskId}`
+  const route = `${routeRootPath}/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -171,34 +210,9 @@ async function getTask(taskId) {
   }
 }
 
-async function removeTask(taskId) {
-  const url = config.input.slabUrl
-  const route = `task_delete/${config.githubContext.repo}/${taskId}`
-  let response
-
-  try {
-    response = await fetch(concatPath(url, route), {
-      method: 'DELETE'
-    })
-  } catch (error) {
-    core.error(`Failed to remove task status with ID: ${taskId}`)
-    throw error
-  }
-
-  if (response.ok) {
-    core.debug('Instance task successfully removed')
-    return response
-  } else {
-    core.error(
-      `Instance task status removal has failed (ID: ${taskId}, HTTP status code: ${response.status})`
-    )
-    throw new Error('task removal failed')
-  }
-}
-
 async function acknowledgeTaskDone(taskId) {
   const url = config.input.slabUrl
-  const route = `task_ack_done/${config.githubContext.repo}/${taskId}`
+  const route = `backend_task_ack_done/${config.githubContext.repo}/${taskId}`
   let response
 
   try {
@@ -224,5 +238,6 @@ async function acknowledgeTaskDone(taskId) {
 module.exports = {
   startInstanceRequest,
   stopInstanceRequest,
+  waitForGithub,
   waitForInstance
 }
