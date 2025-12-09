@@ -2,10 +2,10 @@
 
 ## [1.4.2](https://github.com/zama-ai/slab-github-runner/compare/v1.4.1...v1.4.2) (2025-11-28)
 
-
 ### Bug Fixes
 
-* **gh:** print out any error on the runner list query ([38175e5](https://github.com/zama-ai/slab-github-runner/commit/38175e59c2c30e5cd4c7fe81d16ecfad751d0db5))
+- **gh:** print out any error on the runner list query
+  ([38175e5](https://github.com/zama-ai/slab-github-runner/commit/38175e59c2c30e5cd4c7fe81d16ecfad751d0db5))
 
 ## [1.4.1](https://github.com/zama-ai/slab-github-runner/compare/v1.4.0...v1.4.1) (2024-12-20)
 
