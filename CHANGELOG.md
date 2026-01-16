@@ -1,5 +1,12 @@
 # Slab Action Changelog
 
+# [1.5.0](https://github.com/zama-ai/slab-github-runner/compare/v1.4.2...v1.5.0) (2026-01-16)
+
+
+### Features
+
+* **slab:** using slab new routes to handle async tasks ([c4e972d](https://github.com/zama-ai/slab-github-runner/commit/c4e972d7980ef94928f2a59e772f13a936afb012))
+
 ## [1.4.2](https://github.com/zama-ai/slab-github-runner/compare/v1.4.1...v1.4.2) (2025-11-28)
 
 ### Bug Fixes
