@@ -1,5 +1,12 @@
 # Slab Action Changelog
 
+## [1.5.1](https://github.com/zama-ai/slab-github-runner/compare/v1.5.0...v1.5.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **github:** randomize sleep when calling github api ([b531882](https://github.com/zama-ai/slab-github-runner/commit/b531882edde60545d9452725b7cbf381a8a67578))
+
 # [1.5.0](https://github.com/zama-ai/slab-github-runner/compare/v1.4.2...v1.5.0) (2026-01-16)
 
 ### Features
