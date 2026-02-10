@@ -29,16 +29,16 @@ async function getRunner(label) {
 
 async function waitForRunnerRegistered(label) {
   const timeoutSeconds = 1800
-  const retryIntervalSeconds = 10
   const quietPeriodSeconds = 30
   let waitSeconds = 0
+  let retryIntervalSeconds = 60
 
   core.info(
     `Waiting ${quietPeriodSeconds}s for ${config.input.backend} instance to be registered in GitHub as a new self-hosted runner`
   )
   await utils.sleep(quietPeriodSeconds)
   core.info(
-    `Checking every ${retryIntervalSeconds}s if the GitHub self-hosted runner is registered (runner: ${label})`
+    `Checking every ${quietPeriodSeconds}-${retryIntervalSeconds}s if the GitHub self-hosted runner is registered (runner: ${label})`
   )
 
   while (waitSeconds < timeoutSeconds) {
@@ -54,6 +54,10 @@ async function waitForRunnerRegistered(label) {
       core.info('Checking...')
     }
 
+    retryIntervalSeconds =
+      Math.random() * (retryIntervalSeconds - quietPeriodSeconds) +
+      quietPeriodSeconds // Can sleep up to 60 seconds.
+    core.debug(`Sleeping for ${retryIntervalSeconds}s`)
     await utils.sleep(retryIntervalSeconds)
   }
 
