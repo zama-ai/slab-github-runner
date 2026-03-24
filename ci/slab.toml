@@ -25,5 +25,11 @@ script_path = "ci/terraform_scripts/stacks/aws-tests/terraform.tf"
 instance_type = "t2.micro"
 user ="ubuntu"
 
+[backend.terraform.scaleway-ci-test]
+script_path = "ci/terraform_scripts/stacks/scaleway-tests/terraform.tf"
+#instance_type = "DEV1-S"
+instance_type = "H100-SXM-8-80G"
+user ="ubuntu"
+
 [profile]
 [command]
