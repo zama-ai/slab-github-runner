@@ -1,5 +1,12 @@
 # Slab Action Changelog
 
+# [1.6.0](https://github.com/zama-ai/slab-github-runner/compare/v1.5.1...v1.6.0) (2026-03-31)
+
+
+### Features
+
+* upgrading action to node 24 ([439db90](https://github.com/zama-ai/slab-github-runner/commit/439db908f948b9883389574b7d26bbe208f19de5))
+
 ## [1.5.1](https://github.com/zama-ai/slab-github-runner/compare/v1.5.0...v1.5.1) (2026-02-10)
 
 ### Bug Fixes
