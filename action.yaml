@@ -49,5 +49,5 @@ outputs:
       cases: - to use as the input of 'runs-on' property for the following jobs;
       - to remove the runner from GitHub when it is not needed anymore.
 runs:
-  using: node20
+  using: node24
   main: ./dist/index.js
