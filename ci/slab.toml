@@ -20,5 +20,18 @@ image_name = "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
 flavor_name = "m"
 user = "ubuntu"
 
+[backend.aws.broken-profile]
+region = "eu-west-3"
+image_id = "ami-xxxxxaaaabbbbbccc" # Non-exisiting AMI
+instance_type = "spam.2xlarge"  # Non-exisiting instance type
+user = "ubuntu"
+
+# This is the working fallback for `broken-profile`
+[backend.aws.broken-profile_fallback]
+region = "eu-west-3"
+image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
+instance_type = "t3.2xlarge"
+user = "ubuntu"
+
 [profile]
 [command]
