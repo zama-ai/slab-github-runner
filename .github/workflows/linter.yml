@@ -49,6 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JAVASCRIPT_DEFAULT_STYLE: prettier
           VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BIOME_FORMAT: false # mostly fighting with whitespace instead of tabs
           VALIDATE_JSCPD: false
           VALIDATE_JAVASCRIPT_STANDARD: false
           VALIDATE_MARKDOWN: false
