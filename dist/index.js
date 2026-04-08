@@ -52138,7 +52138,7 @@ async function cleanup() {
   }
 }
 
-process.on('SIGINT', async function () {
+process.on('SIGINT', async () => {
   await cleanup()
   process.exit()
 })
