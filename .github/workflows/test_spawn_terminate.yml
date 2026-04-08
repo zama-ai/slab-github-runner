@@ -8,8 +8,11 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   action-start:
@@ -26,6 +29,8 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Test start instance
         id: test-start
@@ -41,7 +46,10 @@ jobs:
       - name: Generate output
         id: gen-output
         run: |
-          echo "runner_${{ matrix.provider }}=${{ steps.test-start.outputs.label }}" >> "${GITHUB_OUTPUT}"
+          echo "runner_${PROVIDER}=${RUNNER_NAME}" >> "${GITHUB_OUTPUT}"
+        env:
+          RUNNER_NAME: ${{ steps.test-start.outputs.label }}
+          PROVIDER: ${{ matrix.provider }}
 
   test-runner-alive-aws:
     name: Test runner is alive (AWS)
@@ -74,6 +82,8 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Test stop instance
         id: test-stop
