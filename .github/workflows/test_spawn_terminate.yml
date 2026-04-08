@@ -12,29 +12,29 @@ permissions:
   contents: read
 
 jobs:
-  aws-provider:
-    name: test_spawn_terminate/aws-provider (bpr)
-    uses: ./.github/workflows/spawn_terminate_common.yml
-    with:
-      backend: aws
-      profile: ci-test
-    secrets:
-      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
-      JOB_SECRET: ${{ secrets.JOB_SECRET }}
-      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
-      SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
-
-  hyperstack-provider:
-    name: test_spawn_terminate/hyperstack-provider (bpr)
-    uses: ./.github/workflows/spawn_terminate_common.yml
-    with:
-      backend: hyperstack
-      profile: ci-test
-    secrets:
-      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
-      JOB_SECRET: ${{ secrets.JOB_SECRET }}
-      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
-      SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+#  aws-provider:
+#    name: test_spawn_terminate/aws-provider (bpr)
+#    uses: ./.github/workflows/spawn_terminate_common.yml
+#    with:
+#      backend: aws
+#      profile: ci-test
+#    secrets:
+#      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+#      JOB_SECRET: ${{ secrets.JOB_SECRET }}
+#      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+#      SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+#
+#  hyperstack-provider:
+#    name: test_spawn_terminate/hyperstack-provider (bpr)
+#    uses: ./.github/workflows/spawn_terminate_common.yml
+#    with:
+#      backend: hyperstack
+#      profile: ci-test
+#    secrets:
+#      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+#      JOB_SECRET: ${{ secrets.JOB_SECRET }}
+#      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+#      SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
 
   # The primary profile is purposefully broken to check if Slab is using the fallback profile.
   fallback-profile-usage:

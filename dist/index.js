@@ -50092,7 +50092,8 @@ async function waitForInstance(taskId, taskName) {
 
   // while (true) equivalent to please ESLint
   for (;;) {
-    await utils.sleep(15)
+    // await utils.sleep(15)
+    await utils.sleep(2)
 
     core.info('Checking...')
     const response = await getTask(routeRootPath, taskId)
