@@ -1,0 +1,88 @@
+# Common workflow for spawn and terminate tests
+name: spawn_terminate_common
+
+on:
+  workflow_call:
+    inputs:
+      backend:
+        type: string
+        default: hyperstack
+      profile:
+        type: string
+        required: true
+    secrets:
+      REPO_CHECKOUT_TOKEN:
+        required: true
+      SLAB_ACTION_TOKEN:
+        required: true
+      SLAB_URL:
+        required: true
+      JOB_SECRET:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  action-start:
+    name: GitHub Actions Test (spawn)
+    runs-on: ubuntu-latest
+    outputs:
+      runner: ${{ steps.gen-output.outputs.runner }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Test start instance
+        id: test-start
+        uses: ./
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          backend: ${{ inputs.backend }}
+          profile: ${{ inputs.profile }}
+
+      - name: Generate output
+        id: gen-output
+        run: |
+          echo "runner=${{ steps.test-start.outputs.label }}" >> "${GITHUB_OUTPUT}"
+
+  test-runner-alive:
+    name: Test runner is alive
+    needs: [action-start]
+    uses: ./.github/workflows/registered_runner.yml
+    with:
+      runner-name: ${{ needs.action-start.outputs.runner }}
+
+  action-stop:
+    name: GitHub Actions Test (terminate)
+    runs-on: ubuntu-latest
+    needs: [action-start, test-runner-alive]
+    if: ${{ always() && needs.action-start.result != 'skipped' }}
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Test stop instance
+        id: test-stop
+        uses: ./
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ${{ needs.action-start.outputs.runner }}
+
+  test-runner-removed:
+    name: Test runner is removed
+    needs: [action-start, action-stop]
+    uses: ./.github/workflows/removed_runner.yml
+    with:
+      runner-name: ${{ needs.action-start.outputs.runner }}
+      must-exist: false
+    secrets:
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
