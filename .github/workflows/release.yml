@@ -3,18 +3,22 @@ name: Release Slab action
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: {}
+
+# zizmor: ignore[concurrency-limits] only Zama organization members can trigger this workflow
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create a release tag, commit and push release.
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Do release
         uses: codfish/semantic-release-action@b621d34fabe0940f031e89b6ebfea28322892a10

@@ -6,22 +6,28 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-  packages: read
-  statuses: write
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
     name: Lint Codebase
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: read # Needed to pull super-linter docker image.
+      issues: write # To report linter findings in the pull request.
+      statuses: write # To report GitHub Actions status checks.
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         id: setup-node
