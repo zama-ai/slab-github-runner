@@ -1,3 +1,4 @@
+/* eslint no-unused-vars: ["error", { "argsIgnorePattern": "^_" }] */
 const slab = require('./slab')
 const config = require('./config')
 const core = require('@actions/core')
@@ -35,7 +36,7 @@ async function start() {
         'configuration_fetching'
       )
       break
-    } catch (error) {
+    } catch (_error) {
       core.info('Retrying request now...')
     }
 
@@ -64,7 +65,7 @@ async function start() {
     core.info(`${provider} instance started with ID: ${instanceId}`)
 
     await waitForRunnerRegistered(runnerName)
-  } catch (error) {
+  } catch (_error) {
     core.info(`Clean up after error, stop ${provider} instance`)
     await slab.stopInstanceRequest(runnerName)
     core.setFailed(`${provider} instance start has failed`)
@@ -78,7 +79,7 @@ async function stop() {
     try {
       stopInstanceResponse = await slab.stopInstanceRequest(config.input.label)
       break
-    } catch (error) {
+    } catch (_error) {
       core.info('Retrying request now...')
     }
 
@@ -99,7 +100,7 @@ async function stop() {
         `Runner ${config.input.label} unregistered from GitHub successfully`
       )
     }
-  } catch (error) {
+  } catch (_error) {
     // Unregistration failure is not critical, so we just log it and continue.
     core.warning('An error occurred while unregistering runner, check job logs')
   }
@@ -107,7 +108,7 @@ async function stop() {
   try {
     await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
     core.info('Instance successfully stopped')
-  } catch (error) {
+  } catch (_error) {
     // Unregistration failure is not critical, so we just log it and continue.
     core.setFailed(
       'An error occurred while stopping instance, check for zombie instance in backend provider console.'
