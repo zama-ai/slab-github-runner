@@ -21,18 +21,19 @@ jobs:
   test-removed-runner:
     name: Test Removed Runner
     runs-on: ubuntu-latest
-
     steps:
       - name: Check runner removed
         if: inputs.must-exist == false
         run: |
-          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${{ inputs.runner-name }}" ) && { exit 1; } || exit 0
+          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${RUNNER_NAME}" ) && { exit 1; } || exit 0
         env:
           GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
+          RUNNER_NAME: ${{ inputs.runner-name }}
 
       - name: Check runner persists
         if: inputs.must-exist == true
         run: |
-          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${{ inputs.runner-name }}" ) || exit 1
+          ( gh api "repos/zama-ai/slab-github-runner/actions/runners" --jq '.runners[].name' | grep --line-regexp -q "${RUNNER_NAME}" ) || exit 1
         env:
           GH_TOKEN: ${{ secrets.READ_REPO_TOKEN }}
+          RUNNER_NAME: ${{ inputs.runner-name }}

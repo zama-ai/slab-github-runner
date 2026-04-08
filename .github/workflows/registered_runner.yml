@@ -8,15 +8,18 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   test-runner:
     name: Test Runner
     runs-on: ${{ inputs.runner-name }}
     timeout-minutes: 5 # Job should be picked very quickly
+    permissions:
+      contents: read
     steps:
       - name: Runner registered
         run: |
-          echo "Runner name: $ {{ inputs.runner-name }}"
+          echo "Runner name: ${RUNNER_NAME}"
+        env:
+          RUNNER_NAME: ${{ inputs.runner-name }}
