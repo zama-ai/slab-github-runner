@@ -1,9 +1,13 @@
-const crypto = require('node:crypto')
-const core = require('@actions/core')
-const config = require('./config')
-const utils = require('./utils')
+import crypto from 'node:crypto'
+import {
+  debug as setDebug,
+  error as setError,
+  info as setInfo,
+  warning as setWarning
+} from '@actions/core'
+import utils from './utils'
 
-function getSignature(content) {
+function getSignature(config, content) {
   const hmac = crypto.createHmac('sha256', config.input.jobSecret)
   hmac.update(content)
   return hmac.digest('hex')
@@ -18,7 +22,7 @@ function concatPath(url, path) {
   }
 }
 
-async function startInstanceRequest() {
+async function startInstanceRequest(config) {
   const url = config.input.slabUrl
   const provider = config.input.backend
 
@@ -37,10 +41,10 @@ async function startInstanceRequest() {
   }
 
   const body = JSON.stringify(payload)
-  const signature = getSignature(body)
+  const signature = getSignature(config, body)
   let response
 
-  core.info(`Request ${provider} instance start`)
+  setInfo(`Request ${provider} instance start`)
 
   try {
     response = await fetch(concatPath(url, 'job'), {
@@ -54,23 +58,23 @@ async function startInstanceRequest() {
       body: body.toString()
     })
   } catch (error) {
-    core.error('Fetch call has failed')
+    setError('Fetch call has failed')
     throw error
   }
 
   if (response.ok) {
-    core.info(`${provider} instance start successfully requested`)
+    setInfo(`${provider} instance start successfully requested`)
     return await response.json()
   } else {
     const respBody = await response.text()
-    core.error(
+    setError(
       `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance start request failed')
   }
 }
 
-async function stopInstanceRequest(runnerName) {
+async function stopInstanceRequest(config, runnerName) {
   const url = config.input.slabUrl
 
   const payload = {
@@ -83,7 +87,7 @@ async function stopInstanceRequest(runnerName) {
   const signature = getSignature(body)
   let response
 
-  core.info(`Request instance stop (runner: ${runnerName})`)
+  setInfo(`Request instance stop (runner: ${runnerName})`)
 
   try {
     response = await fetch(concatPath(url, 'job'), {
@@ -97,24 +101,24 @@ async function stopInstanceRequest(runnerName) {
       body: body.toString()
     })
   } catch (error) {
-    core.error('Instance stop request has failed')
+    setError('Instance stop request has failed')
     throw error
   }
 
   if (response.ok) {
-    core.info('Instance stop successfully requested')
+    setInfo('Instance stop successfully requested')
     return response.json()
   } else {
     const respBody = await response.text()
-    core.error(
+    setError(
       `Instance stop request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
     throw new Error('instance stop request failed')
   }
 }
 
-async function waitForGithub(taskId, taskName) {
-  core.info(`Wait for GitHub on ${taskName} (task ID: ${taskId})`)
+async function waitForGithub(config, taskId, taskName) {
+  setInfo(`Wait for GitHub on ${taskName} (task ID: ${taskId})`)
 
   const routeRootPath = 'github_task'
 
@@ -122,8 +126,8 @@ async function waitForGithub(taskId, taskName) {
   for (;;) {
     await utils.sleep(15)
 
-    core.info('Checking...')
-    const response = await getTask(routeRootPath, taskId)
+    setInfo('Checking...')
+    const response = await getTask(config, routeRootPath, taskId)
 
     if (response.ok) {
       const body = await response.json()
@@ -133,18 +137,18 @@ async function waitForGithub(taskId, taskName) {
         return body
       } else if (taskStatus === 'failed') {
         if (taskName === 'runner_unregister') {
-          core.warning(
+          setWarning(
             `Github runner ${body[taskName].details.runner_name} unregistration failed.`
           )
           return body
         } else {
-          core.error(`GitHub task failed (details: ${body[taskName].details})`)
-          core.error('Failure occurred while waiting for GitHub.')
+          setError(`GitHub task failed (details: ${body[taskName].details})`)
+          setError('Failure occurred while waiting for GitHub.')
           throw new Error('github task reports failure')
         }
       }
     } else {
-      core.error(
+      setError(
         `Failed to wait for GitHub task (HTTP status code: ${response.status})`
       )
       throw new Error('github waiting failed')
@@ -152,8 +156,8 @@ async function waitForGithub(taskId, taskName) {
   }
 }
 
-async function waitForInstance(taskId, taskName) {
-  core.info(`Wait for instance to ${taskName} (task ID: ${taskId})`)
+async function waitForInstance(config, taskId, taskName) {
+  setInfo(`Wait for instance to ${taskName} (task ID: ${taskId})`)
 
   const routeRootPath = 'backend_task'
 
@@ -161,8 +165,8 @@ async function waitForInstance(taskId, taskName) {
   for (;;) {
     await utils.sleep(15)
 
-    core.info('Checking...')
-    const response = await getTask(routeRootPath, taskId)
+    setInfo('Checking...')
+    const response = await getTask(config, routeRootPath, taskId)
 
     if (response.ok) {
       const body = await response.json()
@@ -170,16 +174,16 @@ async function waitForInstance(taskId, taskName) {
 
       if (taskStatus === 'done') {
         if (taskName === 'start') {
-          await acknowledgeTaskDone(taskId)
+          await acknowledgeTaskDone(config, taskId)
         }
         return body
       } else if (taskStatus === 'failed') {
-        core.error(`Instance task failed (details: ${body[taskName].details})`)
-        core.error('Failure occurred while waiting for instance.')
+        setError(`Instance task failed (details: ${body[taskName].details})`)
+        setError('Failure occurred while waiting for instance.')
         throw new Error('instance task reports failure')
       }
     } else {
-      core.error(
+      setError(
         `Failed to wait for instance (HTTP status code: ${response.status})`
       )
       throw new Error('instance waiting failed')
@@ -187,7 +191,7 @@ async function waitForInstance(taskId, taskName) {
   }
 }
 
-async function getTask(routeRootPath, taskId) {
+async function getTask(config, routeRootPath, taskId) {
   const url = config.input.slabUrl
   const route = `${routeRootPath}/${config.githubContext.repo}/${taskId}`
   let response
@@ -195,22 +199,22 @@ async function getTask(routeRootPath, taskId) {
   try {
     response = await fetch(concatPath(url, route))
   } catch (error) {
-    core.error(`Failed to fetch task status with ID: ${taskId}`)
+    setError(`Failed to fetch task status with ID: ${taskId}`)
     throw error
   }
 
   if (response.ok) {
-    core.debug('Instance task successfully fetched')
+    setDebug('Instance task successfully fetched')
     return response
   } else {
-    core.error(
+    setError(
       `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
     throw new Error('task fetching failed')
   }
 }
 
-async function acknowledgeTaskDone(taskId) {
+async function acknowledgeTaskDone(config, taskId) {
   const url = config.input.slabUrl
   const route = `backend_task_ack_done/${config.githubContext.repo}/${taskId}`
   let response
@@ -220,22 +224,22 @@ async function acknowledgeTaskDone(taskId) {
       method: 'POST'
     })
   } catch (error) {
-    core.error(`Failed to acknowledge task done with ID: ${taskId}`)
+    setError(`Failed to acknowledge task done with ID: ${taskId}`)
     throw error
   }
 
   if (response.ok) {
-    core.debug('Instance task successfully acknowledged')
+    setDebug('Instance task successfully acknowledged')
     return response
   } else {
-    core.error(
+    setError(
       `Instance task acknowledgment request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
     throw new Error('task acknowledging failed')
   }
 }
 
-module.exports = {
+export default {
   startInstanceRequest,
   stopInstanceRequest,
   waitForGithub,

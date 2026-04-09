@@ -1,26 +1,26 @@
-const core = require('@actions/core')
-const github = require('@actions/github')
+import { getInput } from '@actions/core'
+import { context } from '@actions/github'
 
-class Config {
+export default class Config {
   constructor() {
     this.input = {
-      mode: core.getInput('mode'),
-      githubToken: core.getInput('github-token'),
-      slabUrl: core.getInput('slab-url'),
-      jobSecret: core.getInput('job-secret'),
-      backend: core.getInput('backend').toLowerCase(),
-      profile: core.getInput('profile').toLowerCase(),
-      label: core.getInput('label')
+      mode: getInput('mode'),
+      githubToken: getInput('github-token'),
+      slabUrl: getInput('slab-url'),
+      jobSecret: getInput('job-secret'),
+      backend: getInput('backend').toLowerCase(),
+      profile: getInput('profile').toLowerCase(),
+      label: getInput('label')
     }
 
     // the values of github.context.repo.owner and github.context.repo.repo are taken from
     // the environment variable GITHUB_REPOSITORY specified in "owner/repo" format and
     // provided by the GitHub Action on the runtime
     this.githubContext = {
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      sha: github.context.sha,
-      ref: github.context.ref
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      sha: context.sha,
+      ref: context.ref
     }
 
     //
@@ -59,11 +59,4 @@ class Config {
       throw new Error('Wrong mode. Allowed values: start, stop.')
     }
   }
-}
-
-try {
-  module.exports = new Config()
-} catch (error) {
-  core.error(error)
-  core.setFailed(error.message)
 }

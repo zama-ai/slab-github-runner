@@ -1,13 +1,16 @@
-const core = require('@actions/core')
-const github = require('@actions/github')
-const _ = require('lodash')
-const config = require('./config')
-const utils = require('./utils')
+import {
+  error as setError,
+  info as setInfo,
+  debug as setDebug
+} from '@actions/core'
+import { getOctokit } from '@actions/github'
+import _ from 'lodash'
+import utils from './utils'
 
 // Use the unique label to find the runner as we don't have the runner's id,
 // it's not possible to get it in any other way.
-async function getRunner(label) {
-  const octokit = github.getOctokit(config.input.githubToken)
+async function getRunner(config, label) {
+  const octokit = getOctokit(config.input.githubToken)
   let runners = []
 
   try {
@@ -19,7 +22,7 @@ async function getRunner(label) {
       }
     )
   } catch (error) {
-    core.error(`Failed to fetch runners: ${error.message}`)
+    setError(`Failed to fetch runners: ${error.message}`)
     return null
   }
 
@@ -27,46 +30,44 @@ async function getRunner(label) {
   return foundRunners.length > 0 ? foundRunners[0] : null
 }
 
-async function waitForRunnerRegistered(label) {
+async function waitForRunnerRegistered(config, label) {
   const timeoutSeconds = 1800
   const quietPeriodSeconds = 30
   let waitSeconds = 0
   let retryIntervalSeconds = 60
 
-  core.info(
+  setInfo(
     `Waiting ${quietPeriodSeconds}s for ${config.input.backend} instance to be registered in GitHub as a new self-hosted runner`
   )
   await utils.sleep(quietPeriodSeconds)
-  core.info(
+  setInfo(
     `Checking every ${quietPeriodSeconds}-${retryIntervalSeconds}s if the GitHub self-hosted runner is registered (runner: ${label})`
   )
 
   while (waitSeconds < timeoutSeconds) {
-    const runner = await getRunner(label)
+    const runner = await getRunner(config, label)
 
     if (runner && runner.status === 'online') {
-      core.info(
+      setInfo(
         `GitHub self-hosted runner ${runner.name} is registered and ready to use`
       )
       return
     } else {
       waitSeconds += retryIntervalSeconds
-      core.info('Checking...')
+      setInfo('Checking...')
     }
 
     retryIntervalSeconds =
       Math.random() * (retryIntervalSeconds - quietPeriodSeconds) +
       quietPeriodSeconds // Can sleep up to 60 seconds.
-    core.debug(`Sleeping for ${retryIntervalSeconds}s`)
+    setDebug(`Sleeping for ${retryIntervalSeconds}s`)
     await utils.sleep(retryIntervalSeconds)
   }
 
-  core.error(
+  setError(
     `A timeout of ${timeoutSeconds} seconds is exceeded. Your ${config.input.backend} instance was not able to register itself in GitHub as a new self-hosted runner.`
   )
   throw new Error('GitHub self-hosted runner registration error')
 }
 
-module.exports = {
-  waitForRunnerRegistered
-}
+export default waitForRunnerRegistered
