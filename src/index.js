@@ -42,7 +42,7 @@ async function start(config) {
         'configuration_fetching'
       )
       break
-    } catch (_error) {
+    } catch {
       setInfo('Retrying request now...')
     }
 
@@ -72,7 +72,7 @@ async function start(config) {
     setInfo(`${provider} instance started with ID: ${instanceId}`)
 
     await waitForRunnerRegistered(runnerName)
-  } catch (_error) {
+  } catch {
     setInfo(`Clean up after error, stop ${provider} instance`)
     await slab.stopInstanceRequest(runnerName)
     setFailed(`${provider} instance start has failed`)
@@ -89,7 +89,7 @@ async function stop(config) {
         config.input.label
       )
       break
-    } catch (_error) {
+    } catch {
       setInfo('Retrying request now...')
     }
 
@@ -111,7 +111,7 @@ async function stop(config) {
         `Runner ${config.input.label} unregistered from GitHub successfully`
       )
     }
-  } catch (_error) {
+  } catch {
     // Unregistration failure is not critical, so we just log it and continue.
     setWarning('An error occurred while unregistering runner, check job logs')
   }
@@ -119,7 +119,7 @@ async function stop(config) {
   try {
     await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
     setInfo('Instance successfully stopped')
-  } catch (_error) {
+  } catch {
     // Unregistration failure is not critical, so we just log it and continue.
     setFailed(
       'An error occurred while stopping instance, check for zombie instance in backend provider console.'

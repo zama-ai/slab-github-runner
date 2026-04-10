@@ -30,12 +30,11 @@
     "format:write": "prettier --write **/*.js",
     "format:check": "prettier --check **/*.js",
     "format:codebase": "prettier --write **/*js **/*.yml **/*.yaml **/*.md",
-    "format:standardjs": "standard --fix",
-    "lint": "npx eslint . -c ./.github/linters/.eslintrc.yml",
+    "lint": "npx eslint . -c ./.github/linters/eslint.config.mjs",
     "package": "ncc build src/index.js --license licenses.txt",
     "package:watch": "npm run package -- --watch",
     "test": "jest --passWithNoTests",
-    "all": "npm run format:standardjs && npm run format:write && npm run lint && npm run test && npm run package"
+    "all": "npm run format:write && npm run lint && npm run test && npm run package"
   },
   "eslintConfig": {
     "extends": "./.github/linters/.eslintrc.yml"
@@ -71,13 +70,16 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.5",
-    "@babel/eslint-parser": "^7.23.3",
+    "@babel/eslint-parser": "^7.23.5",
     "@babel/preset-env": "^7.23.5",
+    "@eslint/js": "^9.39",
+    "@eslint/eslintrc": "^3.3.5",
     "@vercel/ncc": "^0.38.1",
     "babel-preset-jest": "^29.6.3",
-    "eslint": "^8.55.0",
-    "eslint-plugin-github": "^4.10.1",
-    "eslint-plugin-jest": "^27.6.0",
+    "eslint": "^9.39",
+    "eslint-plugin-github": "^6.0.0",
+    "eslint-plugin-jest": "^29.15.1",
+    "globals": "^17.4.0",
     "jest": "^29.7.0",
     "make-coverage-badge": "^1.2.0",
     "prettier": "^3.1.1"
