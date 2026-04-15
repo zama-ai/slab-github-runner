@@ -61,7 +61,11 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "./src/**"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^@actions/core$": "<rootDir>/node_modules/@actions/core/lib/core.js",
+      "^@actions/github$": "<rootDir>/node_modules/@actions/github/lib/github.js"
+    }
   },
   "dependencies": {
     "@actions/core": "^3.0.0",
