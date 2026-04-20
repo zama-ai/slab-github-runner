@@ -1,7 +1,7 @@
 import { getOctokit } from '@actions/github'
 import { error as setError } from '@actions/core'
 import utils from './utils'
-import waitForRunnerRegistered from './gh'
+import waitForRunnerRegistered, { RegistrationError } from './gh'
 
 jest.mock('@actions/github', () => ({ getOctokit: jest.fn() }))
 jest.mock('@actions/core', () => ({
@@ -28,6 +28,7 @@ describe('waitForRunnerRegistered', () => {
     getOctokit.mockReturnValue({
       paginate: makePaginate([{ name: 'runner-1', status: 'online' }])
     })
+
     await expect(
       waitForRunnerRegistered(mockConfig, 'runner-1')
     ).resolves.toBeUndefined()
@@ -40,6 +41,7 @@ describe('waitForRunnerRegistered', () => {
       .mockResolvedValueOnce([{ name: 'runner-1', status: 'offline' }])
       .mockResolvedValue([{ name: 'runner-1', status: 'online' }])
     getOctokit.mockReturnValue({ paginate })
+
     await expect(
       waitForRunnerRegistered(mockConfig, 'runner-1')
     ).resolves.toBeUndefined()
@@ -52,6 +54,7 @@ describe('waitForRunnerRegistered', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValue([{ name: 'runner-1', status: 'online' }])
     getOctokit.mockReturnValue({ paginate })
+
     await expect(
       waitForRunnerRegistered(mockConfig, 'runner-1')
     ).resolves.toBeUndefined()
@@ -64,6 +67,7 @@ describe('waitForRunnerRegistered', () => {
       .mockRejectedValueOnce(new Error('API error'))
       .mockResolvedValue([{ name: 'runner-1', status: 'online' }])
     getOctokit.mockReturnValue({ paginate })
+
     await expect(
       waitForRunnerRegistered(mockConfig, 'runner-1')
     ).resolves.toBeUndefined()
@@ -73,8 +77,9 @@ describe('waitForRunnerRegistered', () => {
   it('throws when timeout is exceeded', async () => {
     jest.spyOn(Math, 'random').mockReturnValue(1.0)
     getOctokit.mockReturnValue({ paginate: makePaginate([]) })
+
     await expect(
       waitForRunnerRegistered(mockConfig, 'runner-1')
-    ).rejects.toThrow('GitHub self-hosted runner registration error')
+    ).rejects.toThrow(RegistrationError)
   })
 })
