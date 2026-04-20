@@ -49332,6 +49332,11 @@ function sleep(seconds) {
 
 
 
+class StartRequestError extends Error {}
+class StopRequestError extends Error {}
+class WaitError extends Error {}
+class TaskError extends Error {}
+
 function getSignature(config, content) {
   const hmac = external_node_crypto_default().createHmac('sha256', config.input.jobSecret)
   hmac.update(content)
@@ -49384,7 +49389,7 @@ async function startInstanceRequest(config) {
     })
   } catch (error) {
     core_error('Fetch call has failed')
-    throw error
+    throw new StartRequestError(error.message)
   }
 
   if (response.ok) {
@@ -49395,7 +49400,7 @@ async function startInstanceRequest(config) {
     core_error(
       `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
-    throw new Error('instance start request failed')
+    throw new StartRequestError('instance start request failed')
   }
 }
 
@@ -49427,7 +49432,7 @@ async function stopInstanceRequest(config, runnerName) {
     })
   } catch (error) {
     core_error('Instance stop request has failed')
-    throw error
+    throw new StopRequestError(error.message)
   }
 
   if (response.ok) {
@@ -49438,7 +49443,7 @@ async function stopInstanceRequest(config, runnerName) {
     core_error(
       `Instance stop request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
-    throw new Error('instance stop request failed')
+    throw new StopRequestError('instance stop request failed')
   }
 }
 
@@ -49452,7 +49457,14 @@ async function waitForGithub(config, taskId, taskName) {
     await utils.sleep(15)
 
     info('Checking...')
-    const response = await getTask(config, routeRootPath, taskId)
+    let response
+    try {
+      response = await getTask(config, routeRootPath, taskId)
+    } catch (error) {
+      throw new WaitError(
+        `github task fetch failed (details: ${error.message})`
+      )
+    }
 
     if (response.ok) {
       const body = await response.json()
@@ -49469,14 +49481,14 @@ async function waitForGithub(config, taskId, taskName) {
         } else {
           core_error(`GitHub task failed (details: ${body[taskName].details})`)
           core_error('Failure occurred while waiting for GitHub.')
-          throw new Error('github task reports failure')
+          throw new WaitError('github task reports failure')
         }
       }
     } else {
       core_error(
         `Failed to wait for GitHub task (HTTP status code: ${response.status})`
       )
-      throw new Error('github waiting failed')
+      throw new WaitError('github waiting failed')
     }
   }
 }
@@ -49491,7 +49503,14 @@ async function waitForInstance(config, taskId, taskName) {
     await utils.sleep(15)
 
     info('Checking...')
-    const response = await getTask(config, routeRootPath, taskId)
+    let response
+    try {
+      response = await getTask(config, routeRootPath, taskId)
+    } catch (error) {
+      throw new WaitError(
+        `instance task fetch failed (details: ${error.message})`
+      )
+    }
 
     if (response.ok) {
       const body = await response.json()
@@ -49499,19 +49518,31 @@ async function waitForInstance(config, taskId, taskName) {
 
       if (taskStatus === 'done') {
         if (taskName === 'start') {
-          await acknowledgeTaskDone(config, taskId)
+          let ack_response
+          try {
+            ack_response = await acknowledgeTaskDone(config, taskId)
+          } catch (error) {
+            throw new WaitError(
+              `instance task acknowledgement failed (details: ${error.message})`
+            )
+          }
+          if (!ack_response.ok) {
+            throw new WaitError(
+              `instance task acknowledgement failed (HTTP status code: ${ack_response.status}`
+            )
+          }
         }
         return body
       } else if (taskStatus === 'failed') {
         core_error(`Instance task failed (details: ${body[taskName].details})`)
         core_error('Failure occurred while waiting for instance.')
-        throw new Error('instance task reports failure')
+        throw new WaitError('instance task reports failure')
       }
     } else {
       core_error(
         `Failed to wait for instance (HTTP status code: ${response.status})`
       )
-      throw new Error('instance waiting failed')
+      throw new WaitError('instance waiting failed')
     }
   }
 }
@@ -49525,18 +49556,17 @@ async function getTask(config, routeRootPath, taskId) {
     response = await fetch(concatPath(url, route))
   } catch (error) {
     core_error(`Failed to fetch task status with ID: ${taskId}`)
-    throw error
+    throw new TaskError(error.message)
   }
 
   if (response.ok) {
     core_debug('Instance task successfully fetched')
-    return response
   } else {
     core_error(
       `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
-    throw new Error('task fetching failed')
   }
+  return response
 }
 
 async function acknowledgeTaskDone(config, taskId) {
@@ -49550,18 +49580,17 @@ async function acknowledgeTaskDone(config, taskId) {
     })
   } catch (error) {
     core_error(`Failed to acknowledge task done with ID: ${taskId}`)
-    throw error
+    throw new TaskError(error.message)
   }
 
   if (response.ok) {
     core_debug('Instance task successfully acknowledged')
-    return response
   } else {
     core_error(
       `Instance task acknowledgment request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
-    throw new Error('task acknowledging failed')
   }
+  return response
 }
 
 /* harmony default export */ const slab = ({
@@ -53896,6 +53925,8 @@ var lodash_default = /*#__PURE__*/__nccwpck_require__.n(lodash);
 
 
 
+class RegistrationError extends Error {}
+
 // Use the unique label to find the runner as we don't have the runner's id,
 // it's not possible to get it in any other way.
 async function getRunner(config, label) {
@@ -53956,7 +53987,7 @@ async function waitForRunnerRegistered(config, label) {
   core_error(
     `A timeout of ${timeoutSeconds} seconds is exceeded. Your ${config.input.backend} instance was not able to register itself in GitHub as a new self-hosted runner.`
   )
-  throw new Error('GitHub self-hosted runner registration error')
+  throw new RegistrationError('GitHub self-hosted runner registration error')
 }
 
 /* harmony default export */ const gh = (waitForRunnerRegistered);
@@ -53964,6 +53995,11 @@ async function waitForRunnerRegistered(config, label) {
 ;// CONCATENATED MODULE: ./src/config.js
 
 
+
+class ModeError extends Error {}
+class GithubTokenError extends Error {}
+class SlabUrlError extends Error {}
+class JobSecretError extends Error {}
 
 class Config {
   constructor() {
@@ -53992,35 +54028,35 @@ class Config {
     //
 
     if (!this.input.mode) {
-      throw new Error("The 'mode' input is not specified")
+      throw new ModeError("The 'mode' input is not specified")
     }
 
     if (!this.input.githubToken) {
-      throw new Error("The 'github-token' input is not specified")
+      throw new GithubTokenError("The 'github-token' input is not specified")
     }
 
     if (!this.input.slabUrl) {
-      throw new Error("The 'slab-url' input is not specified")
+      throw new SlabUrlError("The 'slab-url' input is not specified")
     }
 
     if (!this.input.jobSecret) {
-      throw new Error("The 'job-secret' input is not specified")
+      throw new JobSecretError("The 'job-secret' input is not specified")
     }
 
     if (this.input.mode === 'start') {
       if (!this.input.backend || !this.input.profile) {
-        throw new Error(
+        throw new ModeError(
           "Not all the required inputs are provided for the 'start' mode"
         )
       }
     } else if (this.input.mode === 'stop') {
       if (!this.input.label) {
-        throw new Error(
+        throw new ModeError(
           "Not all the required inputs are provided for the 'stop' mode"
         )
       }
     } else {
-      throw new Error('Wrong mode. Allowed values: start, stop.')
+      throw new ModeError('Wrong mode. Allowed values: start, stop.')
     }
   }
 }
@@ -54060,9 +54096,9 @@ async function start(config) {
     try {
       if (startInstanceResponse === undefined) {
         // Make a new request only if all previous one failed
-        startInstanceResponse = await _notfoundslab.startInstanceRequest(config)
+        startInstanceResponse = await slab.startInstanceRequest(config)
       }
-      waitGithubResponse = await _notfoundslab.waitForGithub(
+      waitGithubResponse = await slab.waitForGithub(
         config,
         startInstanceResponse.task_id,
         'configuration_fetching'
@@ -54155,7 +54191,7 @@ async function stop(config) {
 
 async function run() {
   try {
-    const config = new _notfoundconfig.Config()
+    const config = new Config()
 
     config.input.mode === 'start' ? await start(config) : await stop(config)
   } catch (error) {
