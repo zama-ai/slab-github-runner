@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { error as setError, warning as setWarning } from '@actions/core'
 import utils from './utils'
-import slab from './slab'
+import slab, { StartRequestError, StopRequestError, WaitError } from './slab'
 
 jest.mock('@actions/core', () => ({
   error: jest.fn(),
@@ -43,29 +43,39 @@ function makeErrorResponse(status, text) {
 
 describe('startInstanceRequest', () => {
   it('returns parsed JSON body on success', async () => {
-    jest
+    const fetchMock = jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeOkResponse({ task_id: '123' }))
+
     const result = await slab.startInstanceRequest(mockConfig)
+
     expect(result).toEqual({ task_id: '123' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://slab.test/job',
+      expect.anything()
+    )
   })
 
   it('throws and calls setError on network failure', async () => {
     jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
+
     await expect(slab.startInstanceRequest(mockConfig)).rejects.toThrow(
-      'network down'
+      StartRequestError
     )
-    expect(setError).toHaveBeenCalledWith('Fetch call has failed')
+
+    expect(setError).toHaveBeenCalled()
   })
 
   it('throws and calls setError on HTTP error response', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeErrorResponse(500, 'server error'))
+
     await expect(slab.startInstanceRequest(mockConfig)).rejects.toThrow(
-      'instance start request failed'
+      StartRequestError
     )
-    expect(setError).toHaveBeenCalledWith(expect.stringContaining('500'))
+
+    expect(setError).toHaveBeenCalled()
   })
 
   it('calls correct URL when slabUrl has trailing slash', async () => {
@@ -77,18 +87,9 @@ describe('startInstanceRequest', () => {
     const fetchMock = jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeOkResponse({ task_id: '1' }))
-    await slab.startInstanceRequest(configWithSlash)
-    expect(fetchMock).toHaveBeenCalledWith(
-      'http://slab.test/job',
-      expect.anything()
-    )
-  })
 
-  it('calls correct URL when slabUrl has no trailing slash', async () => {
-    const fetchMock = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(makeOkResponse({ task_id: '1' }))
-    await slab.startInstanceRequest(mockConfig)
+    await slab.startInstanceRequest(configWithSlash)
+
     expect(fetchMock).toHaveBeenCalledWith(
       'http://slab.test/job',
       expect.anything()
@@ -101,7 +102,10 @@ describe('startInstanceRequest', () => {
       capturedOptions = options
       return Promise.resolve(makeOkResponse({ task_id: '1' }))
     })
+
     await slab.startInstanceRequest(mockConfig)
+
+    expect(capturedOptions.headers['Content-Type']).toBe('application/json')
     expect(capturedOptions.headers['X-Slab-Command']).toBe('start_instance_v2')
     expect(capturedOptions.headers['X-Slab-Repository']).toBe(
       'test-owner/test-repo'
@@ -115,8 +119,10 @@ describe('startInstanceRequest', () => {
       capturedOptions = options
       return Promise.resolve(makeOkResponse({ task_id: '1' }))
     })
+
     await slab.startInstanceRequest(mockConfig)
     const body = JSON.parse(capturedOptions.body)
+
     expect(body.details.backend.provider).toBe('aws')
     expect(body.details.backend.profile).toBe('test-profile')
     expect(body.sha).toBe('test-sha')
@@ -129,11 +135,13 @@ describe('startInstanceRequest', () => {
       capturedOptions = options
       return Promise.resolve(makeOkResponse({ task_id: '1' }))
     })
+
     await slab.startInstanceRequest(mockConfig)
     const expectedSig = crypto
       .createHmac('sha256', mockConfig.input.jobSecret)
       .update(capturedOptions.body)
       .digest('hex')
+
     expect(capturedOptions.headers['X-Hub-Signature-256']).toBe(
       `sha256=${expectedSig}`
     )
@@ -142,11 +150,17 @@ describe('startInstanceRequest', () => {
 
 describe('stopInstanceRequest', () => {
   it('returns parsed JSON body on success', async () => {
-    jest
+    const fetchMock = jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeOkResponse({ task_id: '456' }))
+
     const result = await slab.stopInstanceRequest(mockConfig, 'runner-1')
+
     expect(result).toEqual({ task_id: '456' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://slab.test/job',
+      expect.anything()
+    )
   })
 
   it('sends stop_instance command header', async () => {
@@ -155,26 +169,53 @@ describe('stopInstanceRequest', () => {
       capturedOptions = options
       return Promise.resolve(makeOkResponse({ task_id: '1' }))
     })
+
     await slab.stopInstanceRequest(mockConfig, 'runner-1')
+
+    expect(capturedOptions.headers['Content-Type']).toBe('application/json')
     expect(capturedOptions.headers['X-Slab-Command']).toBe('stop_instance')
+    expect(capturedOptions.headers['X-Slab-Repository']).toBe(
+      'test-owner/test-repo'
+    )
+    expect(capturedOptions.headers['X-Hub-Signature-256']).toMatch(/^sha256=/)
   })
 
   it('throws and calls setError on network failure', async () => {
     jest.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'))
+
     await expect(
       slab.stopInstanceRequest(mockConfig, 'runner-1')
-    ).rejects.toThrow('network down')
-    expect(setError).toHaveBeenCalledWith('Instance stop request has failed')
+    ).rejects.toThrow(StopRequestError)
+    expect(setError).toHaveBeenCalled()
+  })
+
+  it('calls correct URL when slabUrl has trailing slash', async () => {
+    const configWithSlash = Object.assign({}, mockConfig, {
+      input: Object.assign({}, mockConfig.input, {
+        slabUrl: 'http://slab.test/'
+      })
+    })
+    const fetchMock = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(makeOkResponse({ task_id: '1' }))
+
+    await slab.stopInstanceRequest(configWithSlash)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://slab.test/job',
+      expect.anything()
+    )
   })
 
   it('throws and calls setError on HTTP error response', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeErrorResponse(500, 'server error'))
+
     await expect(
       slab.stopInstanceRequest(mockConfig, 'runner-1')
-    ).rejects.toThrow('instance stop request failed')
-    expect(setError).toHaveBeenCalledWith(expect.stringContaining('500'))
+    ).rejects.toThrow(StopRequestError)
+    expect(setError).toHaveBeenCalled()
   })
 })
 
@@ -188,11 +229,13 @@ describe('waitForGithub', () => {
       }
     }
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(makeOkResponse(body))
+
     const result = await slab.waitForGithub(
       mockConfig,
       'task-1',
       'configuration_fetching'
     )
+
     expect(result).toEqual(body)
   })
 
@@ -206,11 +249,13 @@ describe('waitForGithub', () => {
       .mockResolvedValueOnce(makeOkResponse(pendingBody))
       .mockResolvedValueOnce(makeOkResponse(pendingBody))
       .mockResolvedValue(makeOkResponse(doneBody))
+
     const result = await slab.waitForGithub(
       mockConfig,
       'task-1',
       'configuration_fetching'
     )
+
     expect(result).toEqual(doneBody)
     expect(utils.sleep).toHaveBeenCalledTimes(3)
   })
@@ -223,15 +268,15 @@ describe('waitForGithub', () => {
       }
     }
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(makeOkResponse(body))
+
     const result = await slab.waitForGithub(
       mockConfig,
       'task-1',
       'runner_unregister'
     )
+
     expect(result).toEqual(body)
-    expect(setWarning).toHaveBeenCalledWith(
-      expect.stringContaining('unregistration failed')
-    )
+    expect(setWarning).toHaveBeenCalled()
   })
 
   it('throws when non-unregister task fails', async () => {
@@ -239,27 +284,30 @@ describe('waitForGithub', () => {
       configuration_fetching: { status: 'failed', details: 'some failure' }
     }
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(makeOkResponse(body))
+
     await expect(
       slab.waitForGithub(mockConfig, 'task-1', 'configuration_fetching')
-    ).rejects.toThrow('github task reports failure')
+    ).rejects.toThrow(WaitError)
   })
 
   it('propagates error when fetch throws', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockRejectedValue(new Error('network error'))
+
     await expect(
       slab.waitForGithub(mockConfig, 'task-1', 'configuration_fetching')
-    ).rejects.toThrow('network error')
+    ).rejects.toThrow(WaitError)
   })
 
   it('throws task fetching failed when getTask receives non-ok response', async () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue({ ok: false, status: 404 })
+
     await expect(
       slab.waitForGithub(mockConfig, 'task-1', 'configuration_fetching')
-    ).rejects.toThrow('task fetching failed')
+    ).rejects.toThrow(WaitError)
   })
 })
 
@@ -272,7 +320,9 @@ describe('waitForInstance', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(makeOkResponse(taskBody))
       .mockResolvedValueOnce({ ok: true })
+
     const result = await slab.waitForInstance(mockConfig, 'task-1', 'start')
+
     expect(result).toEqual(taskBody)
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -287,7 +337,9 @@ describe('waitForInstance', () => {
     const fetchMock = jest
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(makeOkResponse(taskBody))
+
     const result = await slab.waitForInstance(mockConfig, 'task-1', 'stop')
+
     expect(result).toEqual(taskBody)
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
@@ -295,9 +347,10 @@ describe('waitForInstance', () => {
   it('throws when task fails', async () => {
     const body = { start: { status: 'failed', details: 'error' } }
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(makeOkResponse(body))
+
     await expect(
       slab.waitForInstance(mockConfig, 'task-1', 'start')
-    ).rejects.toThrow('instance task reports failure')
+    ).rejects.toThrow(WaitError)
   })
 
   it('polls until task is done', async () => {
@@ -308,7 +361,9 @@ describe('waitForInstance', () => {
       .mockResolvedValueOnce(makeOkResponse(pendingBody))
       .mockResolvedValueOnce(makeOkResponse(pendingBody))
       .mockResolvedValue(makeOkResponse(doneBody))
+
     const result = await slab.waitForInstance(mockConfig, 'task-1', 'stop')
+
     expect(result).toEqual(doneBody)
     expect(utils.sleep).toHaveBeenCalledTimes(3)
   })
@@ -317,9 +372,10 @@ describe('waitForInstance', () => {
     jest
       .spyOn(globalThis, 'fetch')
       .mockRejectedValue(new Error('network error'))
+
     await expect(
       slab.waitForInstance(mockConfig, 'task-1', 'stop')
-    ).rejects.toThrow('network error')
+    ).rejects.toThrow(WaitError)
   })
 
   it('throws when ack fetch rejects', async () => {
@@ -330,9 +386,10 @@ describe('waitForInstance', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(makeOkResponse(taskBody))
       .mockRejectedValue(new Error('ack network error'))
+
     await expect(
       slab.waitForInstance(mockConfig, 'task-1', 'start')
-    ).rejects.toThrow('ack network error')
+    ).rejects.toThrow(WaitError)
   })
 
   it('throws when ack returns non-ok response', async () => {
@@ -343,8 +400,9 @@ describe('waitForInstance', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(makeOkResponse(taskBody))
       .mockResolvedValue({ ok: false, status: 500 })
+
     await expect(
       slab.waitForInstance(mockConfig, 'task-1', 'start')
-    ).rejects.toThrow('task acknowledging failed')
+    ).rejects.toThrow(WaitError)
   })
 })

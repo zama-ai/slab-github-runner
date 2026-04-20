@@ -7,6 +7,11 @@ import {
 } from '@actions/core'
 import utils from './utils'
 
+export class StartRequestError extends Error {}
+export class StopRequestError extends Error {}
+export class WaitError extends Error {}
+export class TaskError extends Error {}
+
 function getSignature(config, content) {
   const hmac = crypto.createHmac('sha256', config.input.jobSecret)
   hmac.update(content)
@@ -59,7 +64,7 @@ async function startInstanceRequest(config) {
     })
   } catch (error) {
     setError('Fetch call has failed')
-    throw error
+    throw new StartRequestError(error.message)
   }
 
   if (response.ok) {
@@ -70,7 +75,7 @@ async function startInstanceRequest(config) {
     setError(
       `${provider} instance start request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
-    throw new Error('instance start request failed')
+    throw new StartRequestError('instance start request failed')
   }
 }
 
@@ -102,7 +107,7 @@ async function stopInstanceRequest(config, runnerName) {
     })
   } catch (error) {
     setError('Instance stop request has failed')
-    throw error
+    throw new StopRequestError(error.message)
   }
 
   if (response.ok) {
@@ -113,7 +118,7 @@ async function stopInstanceRequest(config, runnerName) {
     setError(
       `Instance stop request has failed (HTTP status code: ${response.status}, body: ${respBody})`
     )
-    throw new Error('instance stop request failed')
+    throw new StopRequestError('instance stop request failed')
   }
 }
 
@@ -127,7 +132,14 @@ async function waitForGithub(config, taskId, taskName) {
     await utils.sleep(15)
 
     setInfo('Checking...')
-    const response = await getTask(config, routeRootPath, taskId)
+    let response
+    try {
+      response = await getTask(config, routeRootPath, taskId)
+    } catch (error) {
+      throw new WaitError(
+        `github task fetch failed (details: ${error.message})`
+      )
+    }
 
     if (response.ok) {
       const body = await response.json()
@@ -144,14 +156,14 @@ async function waitForGithub(config, taskId, taskName) {
         } else {
           setError(`GitHub task failed (details: ${body[taskName].details})`)
           setError('Failure occurred while waiting for GitHub.')
-          throw new Error('github task reports failure')
+          throw new WaitError('github task reports failure')
         }
       }
     } else {
       setError(
         `Failed to wait for GitHub task (HTTP status code: ${response.status})`
       )
-      throw new Error('github waiting failed')
+      throw new WaitError('github waiting failed')
     }
   }
 }
@@ -166,7 +178,14 @@ async function waitForInstance(config, taskId, taskName) {
     await utils.sleep(15)
 
     setInfo('Checking...')
-    const response = await getTask(config, routeRootPath, taskId)
+    let response
+    try {
+      response = await getTask(config, routeRootPath, taskId)
+    } catch (error) {
+      throw new WaitError(
+        `instance task fetch failed (details: ${error.message})`
+      )
+    }
 
     if (response.ok) {
       const body = await response.json()
@@ -174,19 +193,31 @@ async function waitForInstance(config, taskId, taskName) {
 
       if (taskStatus === 'done') {
         if (taskName === 'start') {
-          await acknowledgeTaskDone(config, taskId)
+          let ack_response
+          try {
+            ack_response = await acknowledgeTaskDone(config, taskId)
+          } catch (error) {
+            throw new WaitError(
+              `instance task acknowledgement failed (details: ${error.message})`
+            )
+          }
+          if (!ack_response.ok) {
+            throw new WaitError(
+              `instance task acknowledgement failed (HTTP status code: ${ack_response.status}`
+            )
+          }
         }
         return body
       } else if (taskStatus === 'failed') {
         setError(`Instance task failed (details: ${body[taskName].details})`)
         setError('Failure occurred while waiting for instance.')
-        throw new Error('instance task reports failure')
+        throw new WaitError('instance task reports failure')
       }
     } else {
       setError(
         `Failed to wait for instance (HTTP status code: ${response.status})`
       )
-      throw new Error('instance waiting failed')
+      throw new WaitError('instance waiting failed')
     }
   }
 }
@@ -200,18 +231,17 @@ async function getTask(config, routeRootPath, taskId) {
     response = await fetch(concatPath(url, route))
   } catch (error) {
     setError(`Failed to fetch task status with ID: ${taskId}`)
-    throw error
+    throw new TaskError(error.message)
   }
 
   if (response.ok) {
     setDebug('Instance task successfully fetched')
-    return response
   } else {
     setError(
       `Instance task status request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
-    throw new Error('task fetching failed')
   }
+  return response
 }
 
 async function acknowledgeTaskDone(config, taskId) {
@@ -225,18 +255,17 @@ async function acknowledgeTaskDone(config, taskId) {
     })
   } catch (error) {
     setError(`Failed to acknowledge task done with ID: ${taskId}`)
-    throw error
+    throw new TaskError(error.message)
   }
 
   if (response.ok) {
     setDebug('Instance task successfully acknowledged')
-    return response
   } else {
     setError(
       `Instance task acknowledgment request has failed (ID: ${taskId}, HTTP status code: ${response.status})`
     )
-    throw new Error('task acknowledging failed')
   }
+  return response
 }
 
 export default {

@@ -7,6 +7,8 @@ import { getOctokit } from '@actions/github'
 import _ from 'lodash'
 import utils from './utils'
 
+export class RegistrationError extends Error {}
+
 // Use the unique label to find the runner as we don't have the runner's id,
 // it's not possible to get it in any other way.
 async function getRunner(config, label) {
@@ -67,7 +69,7 @@ async function waitForRunnerRegistered(config, label) {
   setError(
     `A timeout of ${timeoutSeconds} seconds is exceeded. Your ${config.input.backend} instance was not able to register itself in GitHub as a new self-hosted runner.`
   )
-  throw new Error('GitHub self-hosted runner registration error')
+  throw new RegistrationError('GitHub self-hosted runner registration error')
 }
 
 export default waitForRunnerRegistered

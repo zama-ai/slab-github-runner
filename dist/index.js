@@ -30925,7 +30925,10 @@ async function start(config) {
 
   for (let i = 1; i <= 3; i++) {
     try {
-      startInstanceResponse = await _notfoundslab.startInstanceRequest(config)
+      if (startInstanceResponse === undefined) {
+        // Make a new request only if all previous one failed
+        startInstanceResponse = await _notfoundslab.startInstanceRequest(config)
+      }
       waitGithubResponse = await _notfoundslab.waitForGithub(
         config,
         startInstanceResponse.task_id,
@@ -31019,7 +31022,7 @@ async function stop(config) {
 
 async function run() {
   try {
-    const config = new _notfoundconfig()
+    const config = new _notfoundconfig.Config()
 
     config.input.mode === 'start' ? await start(config) : await stop(config)
   } catch (error) {

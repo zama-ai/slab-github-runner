@@ -7,7 +7,7 @@ import {
   warning as setWarning
 } from '@actions/core'
 import waitForRunnerRegistered from './gh'
-import Config from './config'
+import { Config } from './config'
 
 function setOutput(label) {
   coreSetOutput('label', label)
@@ -35,7 +35,10 @@ async function start(config) {
 
   for (let i = 1; i <= 3; i++) {
     try {
-      startInstanceResponse = await slab.startInstanceRequest(config)
+      if (startInstanceResponse === undefined) {
+        // Make a new request only if all previous one failed
+        startInstanceResponse = await slab.startInstanceRequest(config)
+      }
       waitGithubResponse = await slab.waitForGithub(
         config,
         startInstanceResponse.task_id,
