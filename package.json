@@ -17,10 +17,6 @@
     "Actions",
     "JavaScript"
   ],
-  "exports": {
-    ".": "./dist/index.js"
-  },
-  "type": "module",
   "engines": {
     "node": ">=24"
   },
