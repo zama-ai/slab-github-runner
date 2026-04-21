@@ -71,10 +71,10 @@ async function start(config) {
     const instanceId = waitInstanceResponse.start.instance_id
     setInfo(`${provider} instance started with ID: ${instanceId}`)
 
-    await waitForRunnerRegistered(runnerName)
+    await waitForRunnerRegistered(config, runnerName)
   } catch {
     setInfo(`Clean up after error, stop ${provider} instance`)
-    await slab.stopInstanceRequest(runnerName)
+    await slab.stopInstanceRequest(config, runnerName)
     setFailed(`${provider} instance start has failed`)
   }
 }
@@ -117,7 +117,7 @@ async function stop(config) {
   }
 
   try {
-    await slab.waitForInstance(stopInstanceResponse.task_id, 'stop')
+    await slab.waitForInstance(config, stopInstanceResponse.task_id, 'stop')
     setInfo('Instance successfully stopped')
   } catch {
     // Unregistration failure is not critical, so we just log it and continue.

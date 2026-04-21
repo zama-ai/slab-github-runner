@@ -84,7 +84,7 @@ async function stopInstanceRequest(config, runnerName) {
   }
 
   const body = JSON.stringify(payload)
-  const signature = getSignature(body)
+  const signature = getSignature(config, body)
   let response
 
   setInfo(`Request instance stop (runner: ${runnerName})`)
