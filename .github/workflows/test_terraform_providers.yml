@@ -1,5 +1,5 @@
-# Test action to spawn/terminate backend instance
-name: Test Spawn-Terminate
+# Test action to check support of various Terraform providers
+name: Test Terraform Providers
 
 on:
   workflow_dispatch:
@@ -17,24 +17,24 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  aws-provider:
-    name: test_spawn_terminate/aws-provider (bpr)
+  terraform-aws:
+    name: test_terraform_providers/terraform-aws (bpr)
     uses: ./.github/workflows/spawn_terminate_common.yml
     with:
-      backend: aws
-      profile: ci-test
+      backend: terraform
+      profile: aws-ci-test
     secrets:
       REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
       JOB_SECRET: ${{ secrets.JOB_SECRET }}
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
 
-  hyperstack-provider:
-    name: test_spawn_terminate/hyperstack-provider (bpr)
+  terraform-scaleway:
+    name: test_terraform_providers/terraform-scaleway (bpr)
     uses: ./.github/workflows/spawn_terminate_common.yml
     with:
-      backend: hyperstack
-      profile: ci-test
+      backend: terraform
+      profile: scaleway-ci-test
     secrets:
       REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
       JOB_SECRET: ${{ secrets.JOB_SECRET }}

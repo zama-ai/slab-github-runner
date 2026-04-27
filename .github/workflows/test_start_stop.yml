@@ -8,7 +8,8 @@ on:
     branches:
       - main
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
   group:
@@ -23,7 +24,7 @@ jobs:
       runner-name: ci-persistent-runner
       must-exist: true
     secrets:
-      READ_REPO_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
 
   action-start:
     name: GitHub Actions Test (start)
@@ -84,4 +85,4 @@ jobs:
       runner-name: ci-persistent-runner
       must-exist: true
     secrets:
-      READ_REPO_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+      READ_REPO_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
