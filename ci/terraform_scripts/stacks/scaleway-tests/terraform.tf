@@ -5,50 +5,48 @@ terraform {
       version = "~> 2.73"
     }
   }
-  required_version = ">= 0.13"
+  required_version = "~> 1.14"
 }
 provider "scaleway" {
-  zone   = "fr-par-2"
-  region = "fr-par"
+  zone = "fr-par-2"
 }
 
+# Provided via Slab server env
+variable "project_id" {
+  type        = string
+  description = "Scaleway project ID to attached to"
+}
+
+# Provided via ci/slab.toml
 variable "instance_type" {
   type        = string
   description = "Scaleway instance type to be used"
 }
 
+# Provided by Slab server
 variable "instance_label" {
   type        = string
   description = "Instance name to display in console"
 }
 
+# Provided by Slab server
 variable "user_data" {
   type        = string
   description = "Script that will be run at instance startup"
 }
 
-locals {
-  project_id = "7af36573-4180-41de-8c27-890ed9d919fa"
-}
-
 resource "scaleway_instance_ip" "github_runner" {
-  project_id = local.project_id
+  project_id = var.project_id
 }
 
 resource "scaleway_instance_security_group" "github_runner" {
-  project_id              = local.project_id
+  project_id              = var.project_id
   inbound_default_policy  = "drop"
   outbound_default_policy = "accept"
-
-  inbound_rule {
-    action   = "accept"
-    port     = "22"
-    ip_range = "0.0.0.0/0"
-  }
 }
 
 resource "scaleway_instance_server" "cpu_small" {
-  project_id = local.project_id
+  project_id = var.project_id
   image      = "ubuntu_noble"
   type       = var.instance_type
   name       = var.instance_label
