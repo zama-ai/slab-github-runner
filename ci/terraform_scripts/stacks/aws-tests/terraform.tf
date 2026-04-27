@@ -27,15 +27,12 @@ variable "user_data" {
 }
 
 resource "aws_instance" "cpu_small" {
-  ami                  = "ami-0eda00173fe323828"
-  instance_type        = var.instance_type
-  user_data            = var.user_data
-  monitoring           = true
-  iam_instance_profile = "CIBotEC2Role"
+  ami           = "ami-0eda00173fe323828"
+  instance_type = var.instance_type
+  user_data     = var.user_data
+  monitoring    = true
 
-  root_block_device {
-    encrypted = true
-  }
+  # checkov:skip=CKV2_AWS_41:No rule is used since the spawned instance will do nothing
 
   ebs_optimized = true
   ebs_block_device {
