@@ -54072,12 +54072,14 @@ function src_setOutput(label) {
   setOutput('label', label)
 }
 
+// Global variables meant to be used by cleanup function.
+let conf
 let runnerName
 
 async function cleanup() {
   if (runnerName) {
     info('Stop instance after cancellation')
-    await slab.stopInstanceRequest(runnerName)
+    await slab.stopInstanceRequest(conf, runnerName)
   }
 }
 
@@ -54191,9 +54193,9 @@ async function stop(config) {
 
 async function run() {
   try {
-    const config = new Config()
+    conf = new Config()
 
-    config.input.mode === 'start' ? await start(config) : await stop(config)
+    conf.input.mode === 'start' ? await start(conf) : await stop(conf)
   } catch (error) {
     setFailed(error.message)
   }

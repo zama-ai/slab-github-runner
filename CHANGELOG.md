@@ -2,12 +2,14 @@
 
 ## [1.6.1](https://github.com/zama-ai/slab-github-runner/compare/v1.6.0...v1.6.1) (2026-05-11)
 
-
 ### Bug Fixes
 
-* **package:** use es javascript build model ([027ef82](https://github.com/zama-ai/slab-github-runner/commit/027ef822edecdce4b068ed9eebb609b7fbe7fcec))
-* pass config as input argument where requested ([4365b1a](https://github.com/zama-ai/slab-github-runner/commit/4365b1a335e289514344199302c4a38b12fba707))
-* **slab:** pass missing argument to get signature function ([224febc](https://github.com/zama-ai/slab-github-runner/commit/224febcdf35ba871c4e5af19dbcec5ef8ae1efb3))
+- **package:** use es javascript build model
+  ([027ef82](https://github.com/zama-ai/slab-github-runner/commit/027ef822edecdce4b068ed9eebb609b7fbe7fcec))
+- pass config as input argument where requested
+  ([4365b1a](https://github.com/zama-ai/slab-github-runner/commit/4365b1a335e289514344199302c4a38b12fba707))
+- **slab:** pass missing argument to get signature function
+  ([224febc](https://github.com/zama-ai/slab-github-runner/commit/224febcdf35ba871c4e5af19dbcec5ef8ae1efb3))
 
 # [1.6.0](https://github.com/zama-ai/slab-github-runner/compare/v1.5.1...v1.6.0) (2026-03-31)
 
