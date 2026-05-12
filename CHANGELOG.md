@@ -2,10 +2,10 @@
 
 ## [1.6.2](https://github.com/zama-ai/slab-github-runner/compare/v1.6.1...v1.6.2) (2026-05-11)
 
-
 ### Bug Fixes
 
-* make config accessible to cleanup function ([e930256](https://github.com/zama-ai/slab-github-runner/commit/e9302561aaf21f7f5f50231b28ea154be95e1c92))
+- make config accessible to cleanup function
+  ([e930256](https://github.com/zama-ai/slab-github-runner/commit/e9302561aaf21f7f5f50231b28ea154be95e1c92))
 
 ## [1.6.1](https://github.com/zama-ai/slab-github-runner/compare/v1.6.0...v1.6.1) (2026-05-11)
 
