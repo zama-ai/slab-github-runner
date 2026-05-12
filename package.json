@@ -23,8 +23,8 @@
   "scripts": {
     "bundle": "npm run format:write && npm run package",
     "ci-test": "jest --passWithNoTests",
-    "format:write": "prettier --write **/*.js",
-    "format:check": "prettier --check **/*.js",
+    "format:write": "prettier --write **/*.js CHANGELOG.md",
+    "format:check": "prettier --check **/*.js CHANGELOG.md",
     "format:codebase": "prettier --write **/*js **/*.yml **/*.yaml **/*.md",
     "lint": "npx eslint . -c ./.github/linters/eslint.config.mjs",
     "package": "ncc build src/index.js --license licenses.txt",
