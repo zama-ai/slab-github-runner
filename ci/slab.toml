@@ -30,5 +30,28 @@ script_path = "ci/terraform_scripts/stacks/scaleway-tests/terraform.tf"
 instance_type = "DEV1-S"
 user ="ubuntu"
 
+[backend.aws.broken-profile]
+region = "eu-west-3"
+image_id = "ami-xxxxxaaaabbbbbccc" # Non-exisiting AMI
+instance_type = "spam.2xlarge"  # Non-exisiting instance type
+user = "ubuntu"
+
+# This is the working fallback for `broken-profile`
+[backend.aws.broken-profile_fallback]
+region = "eu-west-3"
+image_id = "ami-01d21b7be69801c2f" # Ubuntu 22.04
+instance_type = "t2.micro"
+user = "ubuntu"
+
+[backend.terraform.broken-aws-profile]
+script_path = "ci/terraform_scripts/stacks/aws-tests/terraform.tf"
+instance_type = "spam.2xlarge"  # Non-exisiting instance type
+user ="ubuntu"
+
+[backend.terraform.broken-aws-profile_fallback]
+script_path = "ci/terraform_scripts/stacks/aws-tests/terraform.tf"
+instance_type = "t2.micro"
+user ="ubuntu"
+
 [profile]
 [command]
