@@ -53,3 +53,17 @@ jobs:
       JOB_SECRET: ${{ secrets.JOB_SECRET }}
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+
+  # The primary and secondary profiles are purposefully broken to check if Slab is able to handle several fallback profiles.
+  # This must end up on an instance spawned on AWS without using terraform.
+  multi-fallback-profile-usage:
+    name: test_spawn_terminate/multi-fallback-profile-usage (bpr)
+    uses: ./.github/workflows/spawn_terminate_common.yml
+    with:
+      backend: terraform
+      profile: broken-aws-profile-multi-fallbacks
+    secrets:
+      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+      JOB_SECRET: ${{ secrets.JOB_SECRET }}
+      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+      SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
