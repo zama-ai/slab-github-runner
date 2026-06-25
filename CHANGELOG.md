@@ -1,5 +1,12 @@
 # Slab Action Changelog
 
+## [1.6.3](https://github.com/zama-ai/slab-github-runner/compare/v1.6.2...v1.6.3) (2026-06-25)
+
+
+### Bug Fixes
+
+* update packages to fix vulnerabilities ([308b479](https://github.com/zama-ai/slab-github-runner/commit/308b47983ebce04d6f10c0394201bf5ee222201f))
+
 ## [1.6.2](https://github.com/zama-ai/slab-github-runner/compare/v1.6.1...v1.6.2) (2026-05-11)
 
 ### Bug Fixes
