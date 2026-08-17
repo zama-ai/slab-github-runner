@@ -2,11 +2,6 @@
 name: Release Slab action
 on:
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Dry run'
-        type: boolean
-        default: true
 
 permissions: {}
 
@@ -43,7 +38,6 @@ jobs:
             @semantic-release/changelog
             @semantic-release/git
             @semantic-release/exec
-          dry_run: ${{ inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
           GIT_AUTHOR_NAME: 'zama-bot'
