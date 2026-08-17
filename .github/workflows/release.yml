@@ -2,6 +2,11 @@
 name: Release Slab action
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run'
+        type: boolean
+        default: true
 
 permissions: {}
 
@@ -20,15 +25,27 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Migrated off codfish/semantic-release-action (GitHub ToS-blocked since 2026-06-25,
+      # which broke this workflow using any tag) to the maintained cycjimmy action.
+      # Why codfish/semantic-release-action is blocked:
+      # https://www.aikido.dev/blog/compromised-github-action-codfish-steals-secrets
+      #
+      # cycjimmy runs semantic-release, which AUTO-READS the existing .releaserc for the full
+      # plugin pipeline, order, and tagFormat — so the pipeline is NOT redeclared here (unlike
+      # codfish's `plugins:` input). `extra_plugins` is install-only: it pre-installs the two
+      # plugins semantic-release does not bundle (@semantic-release/changelog and .../git);
+      # commit-analyzer, release-notes-generator, and github are already bundled.
       - name: Do release
-        uses: codfish/semantic-release-action@b621d34fabe0940f031e89b6ebfea28322892a10
+        uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6.0.0
         with:
           branches: main
-          additional-packages: |
-            [
-              '@semantic-release/github',
-              '@semantic-release/git',
-              '@semantic-release/changelog',
-            ]
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+          dry_run: ${{ inputs.dry_run }}
         env:
           GITHUB_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+          GIT_AUTHOR_NAME: 'zama-bot'
+          GIT_AUTHOR_EMAIL: 'zama-bot@zama.ai'
+          GIT_COMMITTER_NAME: 'zama-bot'
