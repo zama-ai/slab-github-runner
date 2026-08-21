@@ -51,6 +51,8 @@ jobs:
       - name: Generate output
         id: gen-output
         run: |
+          echo "ABOUT TO SLEEP FOR 1 HOUR to test hot-reloading"
+          sleep 300
           echo "runner=${RUNNER}" >> "${GITHUB_OUTPUT}"
         env:
           RUNNER: ${{ steps.test-start.outputs.label }}
