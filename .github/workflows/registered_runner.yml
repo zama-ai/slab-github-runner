@@ -14,7 +14,7 @@ jobs:
   test-runner:
     name: Test Runner
     runs-on: ${{ inputs.runner-name }}
-    timeout-minutes: 5 # Job should be picked very quickly
+    timeout-minutes: 10 # TEMP: raised so the 5 min sleep below can complete
     permissions:
       contents: read
     steps:
@@ -23,3 +23,7 @@ jobs:
           echo "Runner name: ${RUNNER_NAME}"
         env:
           RUNNER_NAME: ${{ inputs.runner-name }}
+
+      # TEMP: keep the instance alive for 5 min
+      - name: Idle
+        run: sleep 300
