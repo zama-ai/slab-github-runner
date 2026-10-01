@@ -60,7 +60,6 @@ async function start(config) {
   }
 
   runnerName = waitGithubResponse.configuration_fetching.runner_name
-  setOutput(runnerName)
 
   setInfo(
     `${provider} instance details: ${waitGithubResponse.configuration_fetching.details}`
@@ -77,6 +76,7 @@ async function start(config) {
     setInfo(`${provider} instance started with ID: ${instanceId}`)
 
     await waitForRunnerRegistered(config, runnerName)
+    setOutput(runnerName)
   } catch {
     setInfo(`Clean up after error, stop ${provider} instance`)
     await slab.stopInstanceRequest(config, runnerName)
