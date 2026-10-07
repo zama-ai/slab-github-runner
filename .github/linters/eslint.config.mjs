@@ -15,7 +15,7 @@ export default defineConfig([
     '!**/.*',
     '**/node_modules/.*',
     '**/dist/*.js',
-    '**/coverage/.*',
+    '**/coverage/',
     '**/*.json'
   ]),
   {
