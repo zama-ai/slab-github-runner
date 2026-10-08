@@ -41,6 +41,18 @@ jobs:
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
 
+  terraform-nebius:
+    name: test_terraform_providers/terraform-nebius (bpr)
+    uses: ./.github/workflows/spawn_terminate_common.yml
+    with:
+      backend: terraform
+      profile: nebius-ci-test
+    secrets:
+      REPO_CHECKOUT_TOKEN: ${{ secrets.REPO_CHECKOUT_TOKEN }}
+      JOB_SECRET: ${{ secrets.JOB_SECRET }}
+      SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
+      SLAB_URL: https://slab-ci-preprod.zama.ai
+
   # The primary profile is purposefully broken to check if Slab is using the fallback profile.
   fallback-profile-usage:
     name: test_terraform_providers/fallback-profile-usage (bpr)

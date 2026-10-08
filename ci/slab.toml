@@ -30,6 +30,11 @@ script_path = "ci/terraform_scripts/stacks/scaleway-tests/terraform.tf"
 instance_type = "DEV1-S"
 user ="ubuntu"
 
+[backend.terraform.nebius-ci-test]
+script_path = "ci/terraform_scripts/stacks/nebius-tests/terraform.tf"
+instance_type = "1gpu-16vcpu-200gb"
+user ="ubuntu"
+
 [backend.aws.broken-profile]
 region = "eu-west-3"
 image_id = "ami-xxxxxaaaabbbbbccc" # Non-exisiting AMI
