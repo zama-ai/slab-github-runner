@@ -19,6 +19,9 @@ concurrency:
 jobs:
   aws-provider:
     name: test_spawn_terminate/aws-provider (bpr)
+    permissions:
+      contents: read
+      id-token: write # Required to join the tailnet via OIDC
     uses: ./.github/workflows/spawn_terminate_common.yml
     with:
       backend: aws
@@ -28,9 +31,14 @@ jobs:
       JOB_SECRET: ${{ secrets.JOB_SECRET }}
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+      TS_SLAB_OAUTH_CLIENT_ID: ${{ secrets.TS_SLAB_OAUTH_CLIENT_ID }}
+      TS_SLAB_OAUTH_AUDIENCE: ${{ secrets.TS_SLAB_OAUTH_AUDIENCE }}
 
   hyperstack-provider:
     name: test_spawn_terminate/hyperstack-provider (bpr)
+    permissions:
+      contents: read
+      id-token: write # Required to join the tailnet via OIDC
     uses: ./.github/workflows/spawn_terminate_common.yml
     with:
       backend: hyperstack
@@ -40,10 +48,15 @@ jobs:
       JOB_SECRET: ${{ secrets.JOB_SECRET }}
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+      TS_SLAB_OAUTH_CLIENT_ID: ${{ secrets.TS_SLAB_OAUTH_CLIENT_ID }}
+      TS_SLAB_OAUTH_AUDIENCE: ${{ secrets.TS_SLAB_OAUTH_AUDIENCE }}
 
   # The primary profile is purposefully broken to check if Slab is using the fallback profile.
   fallback-profile-usage:
     name: test_spawn_terminate/fallback-profile-usage (bpr)
+    permissions:
+      contents: read
+      id-token: write # Required to join the tailnet via OIDC
     uses: ./.github/workflows/spawn_terminate_common.yml
     with:
       backend: aws
@@ -53,3 +66,5 @@ jobs:
       JOB_SECRET: ${{ secrets.JOB_SECRET }}
       SLAB_ACTION_TOKEN: ${{ secrets.SLAB_ACTION_TOKEN }}
       SLAB_URL: ${{ secrets.SLAB_BASE_URL_PRE_PROD }}
+      TS_SLAB_OAUTH_CLIENT_ID: ${{ secrets.TS_SLAB_OAUTH_CLIENT_ID }}
+      TS_SLAB_OAUTH_AUDIENCE: ${{ secrets.TS_SLAB_OAUTH_AUDIENCE }}

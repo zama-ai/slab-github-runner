@@ -29,6 +29,10 @@ jobs:
   action-start:
     name: GitHub Actions Test (start)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required to join the tailnet via OIDC
+    environment: ci-env
     needs: [test-runner-exist]
     steps:
       - name: Checkout
@@ -36,6 +40,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Join tailnet
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_SLAB_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_SLAB_OAUTH_AUDIENCE }}
+          tags: tag:slab-ci
 
       - name: Test start instance
         id: test-start
@@ -58,6 +69,10 @@ jobs:
   action-stop:
     name: GitHub Actions Test (stop)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required to join the tailnet via OIDC
+    environment: ci-env
     needs: [action-start, test-runner-alive]
     if: ${{ always() && needs.action-start.result != 'skipped' }}
     steps:
@@ -66,6 +81,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Join tailnet
+        uses: tailscale/github-action@064b10558093f38325e838ddea35486bdc6b1d5c # v4.4.0
+        with:
+          oauth-client-id: ${{ secrets.TS_SLAB_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_SLAB_OAUTH_AUDIENCE }}
+          tags: tag:slab-ci
 
       - name: Test stop instance
         id: test-stop
