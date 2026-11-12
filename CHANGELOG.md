@@ -2,11 +2,12 @@
 
 ## [1.6.4](https://github.com/zama-ai/slab-github-runner/compare/v1.6.3...v1.6.4) (2026-10-01)
 
-
 ### Bug Fixes
 
-* change setOutput of place to avoid sending useless information ([40fa1a1](https://github.com/zama-ai/slab-github-runner/commit/40fa1a110c63c5ac0dbcb66c64f64e72c9fda793))
-* update packages to fix undici vulnerabilities ([df9e1d4](https://github.com/zama-ai/slab-github-runner/commit/df9e1d45e5f02c352cf67a07decdd941e77a063f))
+- change setOutput of place to avoid sending useless information
+  ([40fa1a1](https://github.com/zama-ai/slab-github-runner/commit/40fa1a110c63c5ac0dbcb66c64f64e72c9fda793))
+- update packages to fix undici vulnerabilities
+  ([df9e1d4](https://github.com/zama-ai/slab-github-runner/commit/df9e1d45e5f02c352cf67a07decdd941e77a063f))
 
 ## [1.6.3](https://github.com/zama-ai/slab-github-runner/compare/v1.6.2...v1.6.3) (2026-06-25)
 
